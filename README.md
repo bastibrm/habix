@@ -12,6 +12,7 @@ Windows zeigt beim ersten Start eventuell „Der Computer wurde durch Windows ge
 
 ## Funktionen
 
+- **Startseite:** Zeitleiste für den Tag, „Als Nächstes“ mit Countdown, Schnell-Eingabe („Zahnarzt morgen 14 Uhr“), Wetter, XP-Tagesziel, Geburtstage, Mini-Monatskalender; Karten frei sortier- und ausblendbar
 - **Gewohnheiten:** abhaken oder Mengen zählen, Tageszeiten, Pausen, Serien und Abzeichen
 - **Übersicht:** der ganze Monat als Raster, Vergessenes nachtragen
 - **Statistiken:** Verläufe, Vergleiche, stärkste Wochentage, Aktivität

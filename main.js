@@ -282,6 +282,21 @@ ipcMain.handle('cal:fetch', async (_e, url) => {
   return text;
 });
 
+// Wetter von Open-Meteo (frei, ohne Konto). Nur diese beiden Adressen werden abgefragt.
+async function getJson(url) {
+  const r = await net.fetch(url, { headers: { Accept: 'application/json' } });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+ipcMain.handle('weather:get', (_e, lat, lon) => {
+  const q = new URLSearchParams({ latitude: Number(lat), longitude: Number(lon), current: 'temperature_2m,weather_code', daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max', timezone: 'auto', forecast_days: 1 });
+  return getJson(`https://api.open-meteo.com/v1/forecast?${q}`);
+});
+ipcMain.handle('weather:find', (_e, name, lang) => {
+  const q = new URLSearchParams({ name: String(name).slice(0, 80), count: 1, language: lang === 'en' ? 'en' : 'de', format: 'json' });
+  return getJson(`https://geocoding-api.open-meteo.com/v1/search?${q}`);
+});
+
 ipcMain.handle('cal:file', async () => {
   const r = await dialog.showOpenDialog(win, {
     title: L('Kalender importieren'),

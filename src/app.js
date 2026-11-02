@@ -41,6 +41,7 @@ const MOODS = [
 const DEFAULT_SETTINGS = {
   remindHabits: true, remindHabitsAt: '20:00', remindShift: true, remindShiftMin: 10, remindClockOut: true,
   weeklyReview: true, closeToTray: true, autostart: false, timeZone: 'system', remindEvents: true, remindEventsMin: 15, lang: 'de',
+  xpGoal: 60, weatherPlace: null,
 };
 
 /* ================= Zustand ================= */
@@ -374,26 +375,17 @@ function viewToday() {
       : doneCount === 0 ? `${due.length} Gewohnheiten warten auf dich.`
         : `Noch ${due.length - doneCount} bis zum perfekten Tag.`;
 
-  return `
-  ${state.demo ? demoBanner() : ''}
-  <header class="head fade-in">
-    <div>
-      <div class="eyebrow">${esc(fmtLong(today))}</div>
-      <h1>${greeting()}</h1>
-    </div>
-    <button class="btn primary" data-action="new-habit">${icon('plus')}Neue Gewohnheit</button>
-  </header>
-
-  <section class="grid">
-    <article class="card s4 fade-in">
+  const cards = {
+    done: `
+    <article class="card fade-in">
       <div class="card-head"><div><h2>Heute geschafft</h2><div class="sub">${message}</div></div></div>
       <div class="stat-row">
         <div class="big">${num(doneCount)}<small> / ${num(due.length)}</small></div>
         ${ring(rate)}
       </div>
-    </article>
-
-    <article class="card s4 fade-in">
+    </article>`,
+    perfect: `
+    <article class="card fade-in">
       <div class="card-head">
         <div><h2>Perfekte Tage in Folge</h2><div class="sub">Tage, an denen du alles geschafft hast</div></div>
         <div class="icon-btn" style="color:var(--sun)">${icon('flame')}</div>
@@ -406,14 +398,16 @@ function viewToday() {
         </div>
       </div>
       <div class="meter"><span data-anim="w" style="width:${best ? Math.min(100, (ps / best) * 100) : 0}%"></span></div>
-    </article>
-
-    <article class="card s4 fade-in">
+    </article>`,
+    week: `
+    <article class="card fade-in">
       <div class="card-head"><div><h2>Diese Woche</h2><div class="sub">Erfüllung pro Tag</div></div></div>
       ${bars(week)}
-    </article>
-
-    <article class="card s8 fade-in">
+    </article>`,
+    xp: xpCard(),
+    timeline: timelineCard(),
+    habits: `
+    <article class="card fade-in">
       <div class="card-head">
         <div><h2>Heute dran</h2><div class="sub">Abhaken oder Menge eintragen. Die Kästchen sind die letzten 7 Tage, die kannst du nachtragen.</div></div>
       </div>
@@ -421,47 +415,48 @@ function viewToday() {
       ${free.length ? `
         <div class="sub" style="margin-top:4px">Heute frei</div>
         <div class="free-list">${free.map((h) => `<span class="chip" style="--c:${h.color}">${icon(h.icon)}${esc(h.name)}</span>`).join('')}</div>` : ''}
-    </article>
-
-    <div class="col s4">
-      ${todayEventsCard()}
-      ${journalCard(today)}
-
-      <article class="card fade-in">
-        <div class="card-head">
-          <div><h2>Trend</h2><div class="sub">Letzte 30 Tage</div></div>
-          ${deltaPill(compare(null, 30).delta)}
+    </article>`,
+    tasks: todayTasksCard(''),
+    events: todayEventsCard(),
+    month: monthCard(),
+    journal: journalCard(today),
+    trend: `
+    <article class="card fade-in">
+      <div class="card-head">
+        <div><h2>Trend</h2><div class="sub">Letzte 30 Tage</div></div>
+        ${deltaPill(compare(null, 30).delta)}
+      </div>
+      ${lineChart({ series: trendKeys.map((k) => dayRate(k)), labels: trendKeys.map(fmtShort), w: 360, h: 88, axis: false })}
+    </article>`,
+    compare: `
+    <article class="card fade-in">
+      <div class="card-head"><div><h2>Wochenvergleich</h2><div class="sub">Letzte 7 Tage gegen die 7 davor</div></div></div>
+      <div class="stat-row">
+        <div>
+          <div class="big" style="font-size:30px">${pctN(wk.cur)}</div>
+          <div class="sub">vorher ${pctN(wk.prev)}</div>
         </div>
-        ${lineChart({ series: trendKeys.map((k) => dayRate(k)), labels: trendKeys.map(fmtShort), w: 360, h: 88, axis: false })}
-      </article>
-
-      <article class="card fade-in">
-        <div class="card-head"><div><h2>Wochenvergleich</h2><div class="sub">Letzte 7 Tage gegen die 7 davor</div></div></div>
-        <div class="stat-row">
-          <div>
-            <div class="big" style="font-size:30px">${pctN(wk.cur)}</div>
-            <div class="sub">vorher ${pctN(wk.prev)}</div>
-          </div>
-          ${deltaPill(wk.delta)}
+        ${deltaPill(wk.delta)}
+      </div>
+    </article>`,
+    focus: focus ? `
+    <article class="card fade-in">
+      <div class="card-head"><div><h2>Mehr Luft nach oben</h2><div class="sub">Schwächste Gewohnheit der letzten 14 Tage</div></div></div>
+      <div class="focus-card">
+        ${habitIcon(focus.h)}
+        <div style="min-width:0;flex:1">
+          <div class="habit-name">${esc(focus.h.name)}</div>
+          <div class="rate-bar" style="--c:${focus.h.color}"><span data-anim="w" style="width:${focus.r * 100}%"></span></div>
         </div>
-      </article>
+        <div class="num">${pctN(focus.r)}</div>
+      </div>
+    </article>` : '',
+  };
 
-      ${focus ? `
-      <article class="card fade-in">
-        <div class="card-head"><div><h2>Mehr Luft nach oben</h2><div class="sub">Schwächste Gewohnheit der letzten 14 Tage</div></div></div>
-        <div class="focus-card">
-          ${habitIcon(focus.h)}
-          <div style="min-width:0;flex:1">
-            <div class="habit-name">${esc(focus.h.name)}</div>
-            <div class="rate-bar" style="--c:${focus.h.color}"><span data-anim="w" style="width:${focus.r * 100}%"></span></div>
-          </div>
-          <div class="num">${pctN(focus.r)}</div>
-        </div>
-      </article>` : ''}
-    </div>
-
-    ${todayTasksCard()}
-  </section>`;
+  return `
+  ${state.demo ? demoBanner() : ''}
+  ${dashHead()}
+  ${dashGrid(cards)}`;
 }
 
 // Heute-Liste nach Tageszeit gruppiert, die aktuelle Tageszeit hervorgehoben

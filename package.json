@@ -1,7 +1,7 @@
 {
   "name": "tageswerk",
   "productName": "Tageswerk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Gewohnheiten, Stundenplan und Arbeitszeit für den Desktop",
   "main": "main.js",
   "private": true,

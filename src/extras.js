@@ -439,6 +439,7 @@ function viewSettings() {
       </div>
       <button class="btn small" data-action="test-notify" style="align-self:flex-start">${icon('bell-ring')}Test-Benachrichtigung</button>
     </article>
+    ${homeSettingsCard()}
    </div>
    <div class="settings-col">
     ${timezoneCard()}
@@ -678,7 +679,7 @@ function extrasAction(a, el) {
     case 'relaunch': relaunchApp(); break;
     case 'update-check': ui.update = { ...ui.update, status: 'checking' }; render('update'); window.api?.updateCheck(); break;
     case 'update-install': window.api?.updateInstall(); break;
-    default: if (!calendarAction(a, el) && !taskAction(a, el) && !onboardingAction(a, el) && !financeAction(a, el) && !levelAction(a, el)) workAction(a, el);
+    default: if (!calendarAction(a, el) && !taskAction(a, el) && !onboardingAction(a, el) && !financeAction(a, el) && !levelAction(a, el) && !dashAction(a, el)) workAction(a, el);
   }
 }
 
