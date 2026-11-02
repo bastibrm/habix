@@ -40,21 +40,35 @@ function dashState() {
 }
 const dashShown = (id) => !dashState().hidden.includes(id);
 
-function zoneOrder(zone) {
-  const ids = Object.keys(DASH_CARDS).filter((id) => DASH_CARDS[id].zone === zone);
-  const saved = (dashState().order[zone] || []).filter((id) => ids.includes(id));
-  return [...saved, ...ids.filter((id) => !saved.includes(id))];
+// Große Karten passen nur in die breite Spalte, alles andere überallhin
+const WIDE_ONLY = new Set(['timeline', 'habits', 'tasks']);
+const fitsZone = (id, zone) => zone === 'main' || !WIDE_ONLY.has(id);
+const ZONES = ['top', 'main', 'side'];
+
+function dashZones() {
+  const order = dashState().order;
+  const all = Object.keys(DASH_CARDS);
+  const placed = new Set();
+  const out = { top: [], main: [], side: [] };
+  for (const z of ZONES) {
+    for (const id of order[z] || []) {
+      if (all.includes(id) && !placed.has(id) && fitsZone(id, z)) { out[z].push(id); placed.add(id); }
+    }
+  }
+  for (const id of all) if (!placed.has(id)) out[DASH_CARDS[id].zone].push(id);
+  return out;
 }
 
 // Baut die Startseite aus den fertigen Karten. Leere Karten fallen weg, im Anpassen-Modus stehen sie als Platzhalter da.
 function dashGrid(cards) {
   const edit = !!ui.dashEdit;
-  const zone = (z) => zoneOrder(z).map((id) => {
+  const zones = dashZones();
+  const zone = (z) => zones[z].map((id) => {
     const shown = dashShown(id);
     if (!edit && (!shown || !cards[id])) return '';
     const body = cards[id] || `<article class="card dash-empty"><div class="card-head"><div><h2>${dt(DASH_CARDS[id].de, DASH_CARDS[id].en)}</h2><div class="sub">${dt('Gerade nichts zu zeigen', 'Nothing to show right now')}</div></div></div></article>`;
     if (!edit) return `<div class="dash-item" data-card="${id}">${body}</div>`;
-    return `<div class="dash-item editing ${shown ? '' : 'is-hidden'}" data-card="${id}" data-zone="${z}" draggable="true">
+    return `<div class="dash-item editing ${shown ? '' : 'is-hidden'}" data-card="${id}">
       <div class="dash-ctl">
         <span class="dash-grip" title="${dt('Ziehen zum Sortieren', 'Drag to reorder')}">${icon('grip-vertical')}</span>
         <button class="icon-btn" data-action="dash-toggle" data-id="${id}" title="${shown ? dt('Ausblenden', 'Hide') : dt('Einblenden', 'Show')}">${icon(shown ? 'eye' : 'eye-off')}</button>
@@ -65,16 +79,16 @@ function dashGrid(cards) {
   return `
   ${edit ? dashToolbar() : ''}
   <section class="dash ${edit ? 'edit' : ''}">
-    <div class="dash-zone top" data-zone="top">${zone('top')}</div>
-    <div class="dash-zone main" data-zone="main">${zone('main')}</div>
-    <div class="dash-zone side" data-zone="side">${zone('side')}</div>
+    <div class="dash-zone z-top" data-zone="top" data-hint="${dt('Hierher ziehen', 'Drop here')}">${zone('top')}</div>
+    <div class="dash-zone z-main" data-zone="main" data-hint="${dt('Hierher ziehen', 'Drop here')}">${zone('main')}</div>
+    <div class="dash-zone z-side" data-zone="side" data-hint="${dt('Hierher ziehen', 'Drop here')}">${zone('side')}</div>
   </section>`;
 }
 
 function dashToolbar() {
   return `
   <div class="dash-toolbar fade-in">
-    <div class="dash-toolbar-text"><b>${dt('Startseite anpassen', 'Customize home')}</b><span>${dt('Karten ziehen zum Sortieren, das Auge blendet sie aus und ein. Oben kannst du die Zeilen unter der Begrüßung wählen.', 'Drag cards to reorder, the eye hides and shows them. Above you can choose the lines under the greeting.')}</span></div>
+    <div class="dash-toolbar-text"><b>${dt('Startseite anpassen', 'Customize home')}</b><span>${dt('Pack eine Karte und zieh sie an eine andere Stelle: in die obere Reihe, links oder rechts. Große Karten passen nur in die breite Spalte. Das Auge blendet Karten aus und ein.', 'Grab a card and drag it somewhere else: into the top row, left or right. Large cards only fit the wide column. The eye hides and shows cards.')}</span></div>
     <div class="dash-chips">${Object.entries(DASH_INFO).map(([id, x]) => `<button class="chip dash-chip ${dashShown(id) ? 'on' : ''}" data-action="dash-toggle" data-id="${id}">${icon(dashShown(id) ? 'eye' : 'eye-off')}${dt(x.de, x.en)}</button>`).join('')}</div>
     <div class="btn-row">
       <button class="btn small ghost" data-action="dash-reset">${icon('rotate-ccw')}${dt('Standard', 'Default')}</button>
@@ -98,7 +112,6 @@ function dashHead() {
     <div>
       <div class="eyebrow">${esc(fmtLong(today))}</div>
       <h1>${greeting()}</h1>
-      ${dashShown('thought') ? `<div class="thought">${icon('quote')}<span>${esc(thoughtOfDay(today))}</span></div>` : ''}
     </div>
     <div class="head-actions">
       <button class="btn ghost" data-action="dash-edit" title="${dt('Startseite anpassen', 'Customize home')}">${icon('sliders-horizontal')}${dt('Anpassen', 'Customize')}</button>
@@ -213,6 +226,15 @@ const THOUGHTS = [
   ['Heute ist ein guter Tag, um dranzubleiben.', 'Today is a good day to stick with it.'],
   ['Du bist weiter, als du denkst.', 'You’re further along than you think.'],
 ];
+// Steht oben mittig in der Titelleiste, aber nur auf der Startseite
+function syncTitleThought() {
+  const el = document.getElementById('title-thought');
+  if (!el) return;
+  const on = ui.view === 'today' && active().length && dashShown('thought');
+  el.innerHTML = on ? `${icon('quote')}<span>${esc(thoughtOfDay(todayKey()))}</span>` : '';
+  el.title = on ? thoughtOfDay(todayKey()) : '';
+}
+
 function thoughtOfDay(k) {
   const d = parseKey(k);
   const day = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 864e5);
@@ -285,7 +307,8 @@ function timelineCard() {
     const l = ((a2 - firstH) * 60 / span) * 100, w = (((b - a2) * 60) / span) * 100;
     const label = dt(de, en);
     const state2 = !hs.length ? '' : open ? dt(`${open} offen`, `${open} open`) : dt('erledigt', 'done');
-    return `<div class="tl-band ${id} ${hs.length && !open ? 'ok' : ''}" style="left:${l}%;width:${w}%"><span>${label}${state2 ? ` · ${state2}` : ''}</span></div>`;
+    const icons = hs.map((h) => `<button class="tl-habit ${done(h, today) ? 'done' : ''}" style="--c:${h.color}" data-action="tl-habit" data-id="${h.id}" title="${esc(h.name)}">${icon(h.icon)}</button>`).join('');
+    return `<div class="tl-band ${id} ${hs.length && !open ? 'ok' : ''}" style="left:${l}%;width:${w}%">${icons ? `<div class="tl-habits">${icons}</div>` : ''}<span>${label}${state2 ? ` · ${state2}` : ''}</span></div>`;
   }).join('');
 
   const hours = [];
@@ -348,7 +371,8 @@ const weatherOf = (code) => WEATHER.find((w) => w[0].includes(code)) || WEATHER[
 
 function weatherPill() {
   const place = state.settings.weatherPlace;
-  if (!place || !window.api?.weather) return '';
+  if (!window.api?.weather) return '';
+  if (!place) return `<button class="info-pill action" data-action="weather-setup" style="--c:var(--cyan)">${icon('cloud-sun')}<b>${dt('Wetter', 'Weather')}:</b> ${dt('Ort festlegen', 'set your town')}</button>`;
   const w = ui.weather;
   if (!w || w.place !== place.name || Date.now() - w.at > 30 * 60000) loadWeather();
   if (!w?.data) return '';
@@ -537,34 +561,156 @@ document.addEventListener('keydown', (e) => {
 
 /* ================= Karten verschieben ================= */
 
-let dashDrag = null;
-document.addEventListener('dragstart', (e) => {
-  const item = e.target.closest?.('.dash-item.editing');
-  if (!item) return;
-  dashDrag = item;
-  item.classList.add('dragging');
-  e.dataTransfer.effectAllowed = 'move';
-  e.dataTransfer.setData('text/plain', item.dataset.card);
-});
-document.addEventListener('dragover', (e) => {
-  if (!dashDrag) return;
-  const over = e.target.closest?.('.dash-item.editing');
-  const zone = e.target.closest?.('.dash-zone');
-  if (!zone || zone.dataset.zone !== dashDrag.dataset.zone) return;
+/* Die Karte hängt beim Ziehen an der Maus (leicht gekippt, mit Schatten). An ihrem alten Platz bleibt eine gestrichelte Lücke,
+   die zu der Stelle wandert, wo die Karte landen würde. Die anderen Karten rutschen dabei weich zur Seite (FLIP-Animation).
+   Beim Loslassen gleitet die Karte in die Lücke. */
+let drag = null;
+
+function flip(change) {
+  const items = [...document.querySelectorAll('.dash .dash-item')];
+  const before = new Map(items.map((el) => [el, el.getBoundingClientRect()]));
+  change();
+  for (const el of items) {
+    const a = before.get(el), b = el.getBoundingClientRect();
+    const dx = a.left - b.left, dy = a.top - b.top;
+    if (!dx && !dy) continue;
+    el.style.transition = 'none';
+    el.style.transform = `translate(${dx}px, ${dy}px)`;
+    requestAnimationFrame(() => {
+      el.style.transition = 'transform .32s cubic-bezier(.2, .8, .2, 1)';
+      el.style.transform = '';
+    });
+  }
+}
+
+function startDrag() {
+  const { item } = drag;
+  const r = item.getBoundingClientRect();
+  const ghost = item.cloneNode(true);
+  ghost.classList.add('dash-ghost');
+  ghost.classList.remove('editing');
+  ghost.style.width = `${r.width}px`;
+  ghost.style.height = `${r.height}px`;
+  ghost.style.transform = `translate(${r.left}px, ${r.top}px)`;
+  document.body.appendChild(ghost);
+  requestAnimationFrame(() => ghost.classList.add('lifted'));
+  item.classList.add('placeholder');
+  item.style.height = `${r.height}px`;
+  drag.ghost = ghost;
+  drag.started = true;
+  drag.home = { parent: item.parentElement, next: item.nextSibling };
+  drag.tilt = 0;
+  drag.lastX = drag.sx;
+  drag.coolUntil = 0;
+  document.body.classList.add('dash-dragging');
+  drag.scrollTimer = setInterval(autoScroll, 16);
+}
+
+function moveGhost(x, y) {
+  // Leichtes Kippen in Zugrichtung, das sich wieder beruhigt
+  drag.tilt = Math.max(-7, Math.min(7, drag.tilt * 0.8 + (x - drag.lastX) * 0.35));
+  drag.lastX = x;
+  drag.x = x; drag.y = y;
+  drag.ghost.style.transform = `translate(${x - drag.dx}px, ${y - drag.dy}px) rotate(${drag.tilt * 0.4 - 1}deg)`;
+}
+
+// Lücke an die Stelle unter der Maus bringen, wenn die Karte dort hinpasst
+function placeAt(x, y) {
+  const el = document.elementFromPoint(x, y);
+  const zone = el?.closest('.dash-zone');
+  if (!zone) return;
+  const ok = fitsZone(drag.id, zone.dataset.zone);
+  drag.ghost.classList.toggle('denied', !ok);
+  if (!ok || performance.now() < drag.coolUntil) return;
+  const ph = drag.item;
+  const items = [...zone.querySelectorAll(':scope > .dash-item:not(.placeholder)')];
+  let ref = null;
+  if (items.length) {
+    const horiz = zone.dataset.zone === 'top';
+    const over = el.closest('.dash-item:not(.placeholder)');
+    const target = over && over.parentElement === zone ? over
+      : items.reduce((best, it) => {
+        const r = it.getBoundingClientRect();
+        const d = Math.hypot(x - (r.left + r.width / 2), y - (r.top + r.height / 2));
+        return !best || d < best.d ? { it, d } : best;
+      }, null).it;
+    const r = target.getBoundingClientRect();
+    const after = horiz ? x > r.left + r.width / 2 : y > r.top + r.height / 2;
+    ref = after ? target.nextElementSibling : target;
+    if (ref === ph) ref = ph.nextElementSibling;
+  }
+  if (ph.parentElement === zone && (ph.nextElementSibling === ref || ph === ref)) return;
+  flip(() => {
+    ph.style.height = '';
+    zone.insertBefore(ph, ref);
+    const r = drag.ghost.getBoundingClientRect();
+    ph.style.height = `${Math.min(r.height, 260)}px`;
+  });
+  drag.coolUntil = performance.now() + 140;
+}
+
+// Am Rand der Seite automatisch weiterscrollen
+function autoScroll() {
+  if (!drag?.started || drag.y === undefined) return;
+  const sc = document.getElementById('scroller');
+  const r = sc.getBoundingClientRect();
+  const edge = 70;
+  const v = drag.y < r.top + edge ? -(r.top + edge - drag.y) / 4 : drag.y > r.bottom - edge ? (drag.y - (r.bottom - edge)) / 4 : 0;
+  if (v) { sc.scrollTop += v; placeAt(drag.x, drag.y); }
+}
+
+function finishDrag(cancel = false) {
+  const d = drag;
+  drag = null;
+  if (!d?.started) return;
+  clearInterval(d.scrollTimer);
+  document.body.classList.remove('dash-dragging');
+  if (cancel) flip(() => d.home.parent.insertBefore(d.item, d.home.next));
+  d.item.style.height = '';
+  // Karte gleitet in ihre Lücke
+  const r = d.item.getBoundingClientRect();
+  d.ghost.classList.remove('lifted', 'denied');
+  d.ghost.classList.add('landing');
+  d.ghost.style.width = `${r.width}px`;
+  d.ghost.style.height = `${r.height}px`;
+  d.ghost.style.transform = `translate(${r.left}px, ${r.top}px)`;
+  const done2 = () => {
+    if (!d.ghost.isConnected) return;
+    d.ghost.remove();
+    d.item.classList.remove('placeholder');
+    d.item.classList.add('dropped');
+    setTimeout(() => d.item.classList.remove('dropped'), 450);
+  };
+  d.ghost.addEventListener('transitionend', done2, { once: true });
+  setTimeout(done2, 400);
+  if (!cancel) {
+    const st = dashState();
+    for (const zone of document.querySelectorAll('.dash .dash-zone')) {
+      st.order[zone.dataset.zone] = [...zone.querySelectorAll(':scope > .dash-item')].map((x) => x.dataset.card);
+    }
+    save();
+  }
+}
+
+document.addEventListener('pointerdown', (e) => {
+  const item = e.target.closest?.('.dash.edit .dash-item.editing');
+  if (!item || e.button !== 0 || e.target.closest('button, input, a, select, textarea')) return;
   e.preventDefault();
-  if (!over || over === dashDrag) return;
-  const r = over.getBoundingClientRect();
-  const after = zone.dataset.zone === 'top' ? e.clientX > r.left + r.width / 2 : e.clientY > r.top + r.height / 2;
-  zone.insertBefore(dashDrag, after ? over.nextSibling : over);
+  const r = item.getBoundingClientRect();
+  drag = { item, id: item.dataset.card, sx: e.clientX, sy: e.clientY, dx: e.clientX - r.left, dy: e.clientY - r.top, started: false };
 });
-document.addEventListener('dragend', () => {
-  if (!dashDrag) return;
-  const zone = dashDrag.parentElement;
-  dashDrag.classList.remove('dragging');
-  dashState().order[zone.dataset.zone] = [...zone.querySelectorAll('.dash-item')].map((x) => x.dataset.card);
-  dashDrag = null;
-  save();
+document.addEventListener('pointermove', (e) => {
+  if (!drag) return;
+  if (!drag.started) {
+    if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 6) return;
+    startDrag();
+  }
+  moveGhost(e.clientX, e.clientY);
+  placeAt(e.clientX, e.clientY);
 });
+document.addEventListener('pointerup', () => finishDrag(false));
+document.addEventListener('pointercancel', () => finishDrag(true));
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && drag?.started) finishDrag(true); });
 
 /* ================= Aktionen und Takt ================= */
 
@@ -581,6 +727,20 @@ function dashAction(a, el) {
       return true;
     }
     case 'weather-find': findWeatherPlace(); return true;
+    case 'weather-setup':
+      go('settings');
+      setTimeout(() => { const i = document.getElementById('weather-place'); i?.scrollIntoView({ block: 'center', behavior: 'smooth' }); i?.focus(); }, 350);
+      return true;
+    case 'tl-habit': {
+      // Zur Zeile in „Heute dran“ springen und sie kurz aufleuchten lassen
+      const row = document.querySelector(`.habit-row[data-habit="${el.dataset.id}"]`);
+      if (!row) { go('habits'); return true; }
+      row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      row.classList.remove('flash');
+      void row.offsetWidth;
+      row.classList.add('flash');
+      return true;
+    }
     case 'weather-off': state.settings.weatherPlace = null; ui.weather = null; save(); render('update'); return true;
   }
   return false;

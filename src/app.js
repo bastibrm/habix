@@ -292,6 +292,12 @@ function smoothPath(pts, yMin, yMax) {
 }
 
 let chartSeq = 0;
+// Breite Diagramme in echter Pixelbreite zeichnen, damit sie nicht mit dem Fenster in die Höhe wachsen
+function fullChartW() {
+  const v = document.getElementById('view');
+  return Math.max(560, Math.round((v?.clientWidth || 1000) - 36));
+}
+
 function lineChart({ series, labels, w = 800, h = 240, axis = true, avg = null, tickEvery = 5, fmtY = (g) => `${g * 100}%`, fmtTip = pct }) {
   const id = `lc${chartSeq++}`;
   const L = axis ? 40 : 4, R = 10, T = 12, B = axis ? 26 : 6;
@@ -492,7 +498,7 @@ function habitRow(h) {
   const last7 = range(addDays(today, -6), today);
   const amt = isAmount(h);
   return `
-  <div class="habit-row ${isDone ? 'is-done' : ''} ${amt ? 'is-amount' : ''}" style="--c:${h.color}">
+  <div class="habit-row ${isDone ? 'is-done' : ''} ${amt ? 'is-amount' : ''}" style="--c:${h.color}" data-habit="${h.id}">
     ${habitIcon(h)}
     <div style="min-width:0">
       <div class="habit-name">${esc(h.name)}</div>
@@ -678,7 +684,7 @@ function viewStats() {
         <div><h2>Verlauf</h2><div class="sub">Anteil erledigter Gewohnheiten pro Tag</div></div>
         <div class="legend"><span><i style="background:var(--grad)"></i>Tageswert</span><span><i style="background:var(--sun)"></i>7-Tage-Schnitt</span></div>
       </div>
-      ${lineChart({ series, labels: keys.map(fmtShort), avg, w: 1000, h: 150, tickEvery: days <= 7 ? 1 : days <= 30 ? 5 : 15 })}
+      ${lineChart({ series, labels: keys.map(fmtShort), avg, w: fullChartW(), h: 130, tickEvery: days <= 7 ? 1 : days <= 30 ? 5 : 15 })}
     </article>
 
     <article class="card s7 fade-in">
@@ -884,7 +890,7 @@ function monthMatrix() {
   </div>`;
 
   const chart = lineChart({
-    series: stats.map((s) => s.r), labels: days.map((k) => `${parseKey(k).getDate()}.`), w: 1000, h: 120, tickEvery: 5,
+    series: stats.map((s) => s.r), labels: days.map((k) => `${parseKey(k).getDate()}.`), w: fullChartW(), h: 110, tickEvery: 3,
   });
   return { matrix, chart, first, title: new Intl.DateTimeFormat(LOCALE(), { month: 'long', year: 'numeric' }).format(parseKey(first)) };
 }
@@ -1650,6 +1656,7 @@ function render(mode = 'enter') {
   view.innerHTML = ui.view === 'stats' ? viewStats() : ui.view === 'habits' ? viewHabits() : ui.view === 'schedule' ? viewSchedule()
     : ui.view === 'finance' ? viewFinance() : ui.view === 'calendar' ? viewCalendar() : ui.view === 'tasks' ? viewTasks() : ui.view === 'settings' ? viewSettings() : viewToday();
   renderSidebar();
+  if (typeof syncTitleThought === 'function') syncTitleThought();
   lucide.createIcons();
   runAnimations(view, mode, ui.view);
   applyProgress(view);
@@ -1907,6 +1914,12 @@ document.addEventListener('pointermove', (e) => {
 });
 
 window.addEventListener('resize', moveNavIndicator);
+// Breite Diagramme nach dem Ändern der Fenstergröße neu zeichnen
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { if (['stats', 'habits'].includes(ui.view) && !ui.modal) render('update'); }, 250);
+});
 
 // Uhr jede Sekunde, Stundenplan jede Minute, neuer Tag um Mitternacht
 let lastDay = todayKey();
