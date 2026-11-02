@@ -1,0 +1,25 @@
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('api', {
+  load: () => ipcRenderer.invoke('data:load'),
+  save: (data) => ipcRenderer.invoke('data:save', data),
+  setTheme: (mode) => ipcRenderer.invoke('theme:set', mode),
+  revealData: () => ipcRenderer.invoke('data:reveal'),
+  showWindow: () => ipcRenderer.invoke('window:show'),
+  applySettings: (s) => ipcRenderer.invoke('settings:apply', s),
+  trayStatus: (status) => ipcRenderer.invoke('tray:status', status),
+  onTrayAction: (fn) => ipcRenderer.on('tray:action', (_e, action) => fn(action)),
+  backupExport: (data) => ipcRenderer.invoke('backup:export', data),
+  backupImport: () => ipcRenderer.invoke('backup:import'),
+  backupAuto: (data) => ipcRenderer.invoke('backup:auto', data),
+  backupFolder: () => ipcRenderer.invoke('backup:folder'),
+  updateGet: () => ipcRenderer.invoke('update:get'),
+  updateCheck: () => ipcRenderer.invoke('update:check'),
+  updateInstall: () => ipcRenderer.invoke('update:install'),
+  onUpdate: (fn) => ipcRenderer.on('update:state', (_e, s) => fn(s)),
+  tzInfo: () => ipcRenderer.invoke('tz:info'),
+  relaunch: () => ipcRenderer.invoke('app:relaunch'),
+  calFetch: (url) => ipcRenderer.invoke('cal:fetch', url),
+  calFile: () => ipcRenderer.invoke('cal:file'),
+  finFile: () => ipcRenderer.invoke('fin:file'),
+});

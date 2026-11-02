@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Tageswerk Promo</title>
+  <link rel="stylesheet" href="../node_modules/@fontsource/figtree/400.css">
+  <link rel="stylesheet" href="../node_modules/@fontsource/figtree/600.css">
+  <link rel="stylesheet" href="../node_modules/@fontsource/bricolage-grotesque/600.css">
+  <link rel="stylesheet" href="../node_modules/@fontsource/bricolage-grotesque/800.css">
+  <link rel="stylesheet" href="../node_modules/@fontsource/jetbrains-mono/500.css">
+  <link rel="stylesheet" href="stage.css">
+</head>
+<body>
+  <div id="stage">
+    <canvas id="bg" width="1920" height="1080"></canvas>
+
+    <div class="scene3d">
+      <div class="frame-glow" id="frame-glow"></div>
+      <div class="frame" id="frame">
+        <iframe id="app" title="Tageswerk" scrolling="no"></iframe>
+        <div class="winctl" aria-hidden="true"><span>&#x2013;</span><span>&#x25A1;</span><span>&#x2715;</span></div>
+        <div class="glare" id="glare"></div>
+        <div id="fx-frame"></div>
+        <div class="cursor" id="cursor">
+          <svg viewBox="0 0 28 32" width="28" height="32"><path d="M3 2 L3 25 L9 19.5 L13.2 29 L17.4 27.2 L13.3 18 L21.5 18 Z" fill="#fff" stroke="#111" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div id="flash"></div>
+    <div id="captions"></div>
+        <div id="stamp"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg><span>Freigeschaltet</span></div>
+    <canvas id="confetti" width="1920" height="1080"></canvas>
+
+    <div id="intro">
+      <svg class="intro-logo" viewBox="0 0 32 32"><circle id="logo-ring" cx="16" cy="16" r="13" fill="none" stroke="url(#lg)" stroke-width="3" stroke-dasharray="61 82" stroke-linecap="round" transform="rotate(-90 16 16)"/><circle id="logo-dot" cx="16" cy="16" r="5" fill="#9585ff"/>
+        <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5ad8ff"/><stop offset="1" stop-color="#9585ff"/></linearGradient></defs></svg>
+      <div class="intro-title" id="intro-title"></div>
+      <div class="intro-tag" id="intro-tag"><span>Kleine Schritte.</span> <span class="grad">Jeden Tag.</span></div>
+    </div>
+
+    <div id="outro">
+      <svg class="outro-logo" viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="none" stroke="url(#lg2)" stroke-width="3" stroke-dasharray="61 82" stroke-linecap="round" transform="rotate(-90 16 16)"/><circle cx="16" cy="16" r="5" fill="#9585ff"/>
+        <defs><linearGradient id="lg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5ad8ff"/><stop offset="1" stop-color="#9585ff"/></linearGradient></defs></svg>
+      <div class="outro-title">Tageswerk</div>
+      <div class="outro-features" id="outro-features"></div>
+      <div class="outro-cta"><span class="pill">Kostenlos für Windows</span><span class="pill ghost">Deutsch &amp; English</span></div>
+    </div>
+
+    <div id="vignette"></div>
+    <div id="fade"></div>
+  </div>
+
+  <script src="timeline.js"></script>
+  <script src="stage.js"></script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; script-src 'self'">
+  <title>Tageswerk</title>
+  <link rel="stylesheet" href="../node_modules/@fontsource/figtree/400.css">
+  <link rel="stylesheet" href="../node_modules/@fontsource/figtree/500.css">
+  <link rel="stylesheet" href="../node_modules/@fontsource/figtree/600.css">
+  <link rel="stylesheet" href="../node_modules/@fontsource/bricolage-grotesque/600.css">
+  <link rel="stylesheet" href="../node_modules/@fontsource/bricolage-grotesque/800.css">
+  <link rel="stylesheet" href="../node_modules/@fontsource/jetbrains-mono/500.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand drag">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="61 82" stroke-linecap="round" transform="rotate(-90 16 16)"/><circle cx="16" cy="16" r="5" fill="currentColor"/></svg>
+        </div>
+        <span class="brand-name">Tageswerk</span>
+      </div>
+
+      <nav class="nav" aria-label="Hauptnavigation">
+        <span class="nav-indicator" aria-hidden="true"></span>
+        <button class="nav-item active" data-view="today" id="nav-today"><i data-lucide="sun"></i><span>Heute</span></button>
+
+        <div class="nav-section">Planen</div>
+        <button class="nav-item" data-view="calendar" id="nav-calendar"><i data-lucide="calendar-days"></i><span>Kalender</span></button>
+        <button class="nav-item" data-view="tasks" id="nav-tasks"><i data-lucide="list-todo"></i><span>Aufgaben</span><span class="nav-count" id="nav-task-count"></span></button>
+
+        <div class="nav-section">Gewohnheiten</div>
+        <button class="nav-item" data-view="habits" id="nav-habits"><i data-lucide="list-checks"></i><span>Übersicht</span></button>
+        <button class="nav-item" data-view="stats" id="nav-stats"><i data-lucide="activity"></i><span>Statistiken</span></button>
+
+        <div class="nav-section">Arbeit</div>
+        <button class="nav-item" data-view="schedule" id="nav-schedule"><i data-lucide="calendar-clock"></i><span>Stundenplan</span><span class="nav-lock" aria-label="gesperrt"><i data-lucide="lock"></i></span></button>
+
+        <div class="nav-section">Geld</div>
+        <button class="nav-item" data-view="finance" id="nav-finance"><i data-lucide="wallet"></i><span>Finanzen</span><span class="nav-lock" aria-label="gesperrt"><i data-lucide="lock"></i></span></button>
+
+      </nav>
+
+      <div class="sidebar-foot">
+        <div class="mini-card">
+          <div class="label">Gewohnheiten heute</div>
+          <div class="value" id="sb-value">Nichts geplant</div>
+          <div class="meter"><span id="sb-meter" style="width:0%"></span></div>
+        </div>
+        <button class="nav-item nav-bottom" data-view="settings" id="nav-settings"><i data-lucide="settings"></i><span>Einstellungen</span></button>      </div>
+    </aside>
+
+    <main class="main">
+      <div class="titlebar drag">
+        <div class="title-actions">
+          <button class="level-pill" id="level-card" data-action="level-open"></button>
+          <div class="clock-pill" id="clock-pill"></div>
+        </div>
+      </div>
+      <div class="scroller" id="scroller">
+        <div class="view" id="view"></div>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modal" hidden></div>
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="../node_modules/lucide/dist/umd/lucide.min.js"></script>
+  <script src="app.js"></script>
+  <script src="calendar.js"></script>
+  <script src="tasks.js"></script>
+  <script src="onboarding.js"></script>
+  <script src="levels.js"></script>
+  <script src="finance.js"></script>
+  <script src="i18n-en.js"></script>
+  <script src="i18n.js"></script>
+  <script src="extras.js"></script>
+</body>
+</html>

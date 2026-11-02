@@ -1,0 +1,5 @@
+node_modules/
+dist/
+promo/out/
+*.log
+.claude/

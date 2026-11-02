@@ -1,0 +1,60 @@
+{
+  "name": "tageswerk",
+  "productName": "Tageswerk",
+  "version": "1.0.0",
+  "description": "Gewohnheiten, Stundenplan und Arbeitszeit für den Desktop",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --publish never",
+    "release": "electron-builder --win --publish always",
+    "promo": "node promo/music.js && electron promo/record.js"
+  },
+  "build": {
+    "appId": "de.tageswerk.app",
+    "productName": "Tageswerk",
+    "copyright": "© 2026",
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "assets/**/*"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Tageswerk",
+      "artifactName": "Tageswerk-Setup-${version}.${ext}"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "bastibrm",
+        "repo": "tageswerk",
+        "releaseType": "release"
+      }
+    ]
+  },
+  "devDependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "electron": "^39.8.10",
+    "electron-builder": "^25.1.8"
+  },
+  "dependencies": {
+    "@fontsource/bricolage-grotesque": "^5.3.0",
+    "@fontsource/figtree": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "electron-updater": "^6.8.11",
+    "lucide": "^0.460.0"
+  }
+}
