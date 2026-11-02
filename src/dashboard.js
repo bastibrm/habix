@@ -293,7 +293,7 @@ function timelineCard() {
   const blocks = timed.sort((a, b) => a.startMs - b.startMs).map((i) => {
     const lane = i.startMs >= lanes[0] ? 0 : i.startMs >= lanes[1] ? 1 : 0;
     lanes[lane] = Math.max(lanes[lane], i.endMs);
-    const l = pos(i.startMs), w = Math.max(1.2, pos(i.endMs) - l);
+    const l = pos(i.startMs), w = Math.max(3, pos(i.endMs) - l);
     const t = `${hhmm(i.startMs)} ${esc(i.ev.title)}`;
     return `<div class="tl-ev lane${lane} ${i.ev.task ? 'task' : ''} ${i.ev.done ? 'done' : ''}" style="left:${l}%;width:${w}%;--c:${colorOf(i)}" title="${t}"><span>${esc(i.ev.title)}</span></div>`;
   }).join('');

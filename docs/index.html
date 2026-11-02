@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tageswerk – Gewohnheiten, Aufgaben und Kalender für Windows</title>
+  <meta name="description" content="Tageswerk ist eine kostenlose Desktop-App für Windows: Gewohnheiten, Aufgaben, Kalender, Statistiken und Level an einem Ort. Ohne Konto, deine Daten bleiben auf deinem PC.">
+  <meta property="og:title" content="Tageswerk – Kleine Schritte. Jeden Tag.">
+  <meta property="og:description" content="Kostenlose Windows-App für Gewohnheiten, Aufgaben, Kalender und mehr. Ohne Konto, alles bleibt auf deinem PC.">
+  <meta property="og:image" content="https://bastibrm.github.io/tageswerk/img/heute.jpg">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0e0f11; --bg-2: #141518; --card: #1a1b1f; --line: rgba(255,255,255,.08); --line-hi: rgba(255,255,255,.16);
+      --fg: #eceef1; --muted: #a0a3ab; --faint: #6b6e76;
+      --cyan: #5ad8ff; --violet: #9585ff; --pink: #ff7ab6; --good: #4fd6a4; --sun: #ffc46b;
+      --display: "Bricolage Grotesque", "Segoe UI", sans-serif; --body: "Figtree", "Segoe UI", sans-serif;
+      --r: 22px;
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--bg); color: var(--fg); font: 400 17px/1.6 var(--body); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+    img { max-width: 100%; display: block; }
+    a { color: inherit; }
+    .wrap { width: min(1180px, 100% - 40px); margin: 0 auto; }
+    .grad { background: linear-gradient(100deg, var(--cyan), var(--violet) 60%, var(--pink)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+    /* Hintergrund-Leuchten */
+    .glow { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+    .glow::before, .glow::after { content: ""; position: absolute; width: 900px; height: 900px; border-radius: 50%; filter: blur(120px); opacity: .32; }
+    .glow::before { background: var(--violet); top: -420px; right: -260px; }
+    .glow::after { background: var(--cyan); top: 260px; left: -520px; opacity: .18; }
+
+    /* Navigation */
+    nav { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(14px); background: rgba(14,15,17,.72); border-bottom: 1px solid var(--line); }
+    nav .wrap { display: flex; align-items: center; gap: 28px; height: 64px; }
+    .brand { display: flex; align-items: center; gap: 10px; font: 800 20px var(--display); letter-spacing: -.02em; text-decoration: none; }
+    .brand svg { width: 28px; height: 28px; }
+    nav .links { display: flex; gap: 22px; margin-left: auto; font-size: 15px; color: var(--muted); }
+    nav .links a { text-decoration: none; transition: color .2s; }
+    nav .links a:hover { color: var(--fg); }
+    .btn { display: inline-flex; align-items: center; gap: 10px; padding: 12px 22px; border-radius: 999px; font: 700 16px var(--body); text-decoration: none; cursor: pointer; border: 0;
+      transition: transform .25s cubic-bezier(.3,1.5,.5,1), box-shadow .25s, background .2s; }
+    .btn svg { width: 19px; height: 19px; }
+    .btn.primary { color: #0c0d10; background: linear-gradient(120deg, var(--cyan), var(--violet)); box-shadow: 0 16px 40px -14px rgba(149,133,255,.85); }
+    .btn.primary:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 22px 50px -14px rgba(149,133,255,1); }
+    .btn.ghost { color: var(--fg); background: rgba(255,255,255,.06); box-shadow: inset 0 0 0 1px var(--line-hi); }
+    .btn.ghost:hover { background: rgba(255,255,255,.1); transform: translateY(-2px); }
+    .btn.small { padding: 9px 16px; font-size: 14px; }
+    .btn.big { padding: 17px 30px; font-size: 18px; }
+
+    /* Kopf */
+    header.hero { position: relative; padding: 84px 0 40px; text-align: center; }
+    .hero .wrap { position: relative; z-index: 1; }
+    .pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--fg);
+      background: rgba(149,133,255,.14); box-shadow: inset 0 0 0 1px rgba(149,133,255,.4); }
+    .pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--good); box-shadow: 0 0 10px var(--good); }
+    h1 { font: 800 clamp(44px, 7vw, 86px)/1.02 var(--display); letter-spacing: -.04em; margin: 22px 0 18px; }
+    .lead { max-width: 660px; margin: 0 auto; font-size: 19px; color: var(--muted); }
+    .cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 34px; }
+    .meta { margin-top: 14px; font-size: 14px; color: var(--faint); }
+    .shot-hero { margin: 64px auto 0; max-width: 1080px; position: relative; perspective: 1800px; }
+    .frame { border-radius: 16px; overflow: hidden; border: 1px solid var(--line-hi); background: var(--bg-2);
+      box-shadow: 0 50px 120px -40px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.03), 0 0 120px -30px rgba(149,133,255,.5); }
+    .shot-hero .frame { transform: rotateX(8deg); transform-origin: 50% 100%; transition: transform .8s cubic-bezier(.2,.8,.2,1); }
+    .shot-hero:hover .frame { transform: rotateX(0); }
+
+    /* Abschnitte */
+    section { position: relative; padding: 96px 0; }
+    .sec-head { text-align: center; max-width: 720px; margin: 0 auto 54px; }
+    .eyebrow { font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--violet); }
+    h2 { font: 800 clamp(32px, 4.4vw, 50px)/1.08 var(--display); letter-spacing: -.035em; margin: 10px 0 14px; }
+    h3 { font: 800 28px/1.15 var(--display); letter-spacing: -.025em; margin: 8px 0 12px; }
+    .muted { color: var(--muted); }
+
+    .video { max-width: 1000px; margin: 0 auto; }
+    .video video { width: 100%; display: block; aspect-ratio: 16 / 9; background: #000; }
+
+    .feature { display: grid; grid-template-columns: 1fr 1.35fr; gap: 56px; align-items: center; margin-bottom: 96px; }
+    .feature:nth-child(even) { grid-template-columns: 1.35fr 1fr; }
+    .feature:nth-child(even) .text { order: 2; }
+    .feature ul { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 10px; }
+    .feature li { display: flex; gap: 10px; color: var(--muted); font-size: 16px; }
+    .feature li::before { content: "✓"; flex: none; display: grid; place-items: center; width: 20px; height: 20px; margin-top: 3px; border-radius: 7px; font-size: 12px; font-weight: 800; color: #0c0d10; background: linear-gradient(135deg, var(--cyan), var(--violet)); }
+    .feature .frame { cursor: zoom-in; transition: transform .4s cubic-bezier(.2,.8,.2,1); }
+    .feature .frame:hover { transform: translateY(-4px) scale(1.01); }
+
+    .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .card { padding: 26px; border-radius: var(--r); background: linear-gradient(160deg, rgba(255,255,255,.045), rgba(255,255,255,.015)); border: 1px solid var(--line); }
+    .card .ico { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; margin-bottom: 14px; color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent); }
+    .card .ico svg { width: 22px; height: 22px; }
+    .card h4 { font: 700 19px var(--body); margin: 0 0 6px; }
+    .card p { margin: 0; color: var(--muted); font-size: 15.5px; }
+
+    .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .duo .card { padding: 0; overflow: hidden; }
+    .duo .card .body { padding: 26px 28px 30px; }
+    .duo .card img { border-bottom: 1px solid var(--line); cursor: zoom-in; }
+    .lock { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--sun); }
+    .lock svg { width: 14px; height: 14px; }
+
+    .final { text-align: center; padding: 110px 0 120px; }
+    .final .box { position: relative; overflow: hidden; padding: 70px 30px; border-radius: 32px; border: 1px solid var(--line-hi);
+      background: radial-gradient(800px 400px at 50% 0%, rgba(149,133,255,.25), transparent 70%), var(--bg-2); }
+
+    .faq { max-width: 820px; margin: 0 auto; display: grid; gap: 12px; }
+    details { border-radius: 16px; border: 1px solid var(--line); background: rgba(255,255,255,.025); padding: 0 22px; transition: background .2s; }
+    details[open] { background: rgba(255,255,255,.045); }
+    summary { list-style: none; cursor: pointer; padding: 18px 0; font-weight: 700; display: flex; justify-content: space-between; gap: 16px; }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "+"; font: 400 24px/1 var(--body); color: var(--violet); transition: transform .25s; }
+    details[open] summary::after { transform: rotate(45deg); }
+    details p { margin: 0 0 18px; color: var(--muted); }
+
+    footer { border-top: 1px solid var(--line); padding: 30px 0 40px; color: var(--faint); font-size: 14px; }
+    footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+
+    /* Bild groß anzeigen */
+    .lightbox { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 30px; background: rgba(5,6,8,.86); backdrop-filter: blur(8px);
+      opacity: 0; pointer-events: none; transition: opacity .25s; cursor: zoom-out; }
+    .lightbox.on { opacity: 1; pointer-events: auto; }
+    .lightbox img { max-height: 92vh; border-radius: 14px; box-shadow: 0 40px 100px -20px #000; transform: scale(.96); transition: transform .3s cubic-bezier(.2,.8,.2,1); }
+    .lightbox.on img { transform: scale(1); }
+
+    /* Einblenden beim Scrollen */
+    .reveal { opacity: 0; transform: translateY(28px); transition: opacity .8s ease, transform .8s cubic-bezier(.2,.8,.2,1); }
+    .reveal.in { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } html { scroll-behavior: auto; } }
+
+    @media (max-width: 900px) {
+      nav .links { display: none; }
+      nav .btn { margin-left: auto; }
+      .feature, .feature:nth-child(even) { grid-template-columns: 1fr; gap: 26px; margin-bottom: 70px; }
+      .feature:nth-child(even) .text { order: 0; }
+      .grid3, .duo { grid-template-columns: 1fr; }
+      section { padding: 70px 0; }
+      header.hero { padding-top: 56px; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="wrap">
+      <a class="brand" href="#"><svg viewBox="0 0 32 32"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5ad8ff"/><stop offset="1" stop-color="#9585ff"/></linearGradient></defs><circle cx="16" cy="16" r="13" fill="none" stroke="url(#lg)" stroke-width="3" stroke-dasharray="61 82" stroke-linecap="round" transform="rotate(-90 16 16)"/><circle cx="16" cy="16" r="5" fill="#9585ff"/></svg>Tageswerk</a>
+      <div class="links"><a href="#video">Video</a><a href="#funktionen">Funktionen</a><a href="#fragen">Fragen</a><a href="https://github.com/bastibrm/tageswerk">GitHub</a></div>
+      <a class="btn primary small dl" href="https://github.com/bastibrm/tageswerk/releases/latest">Herunterladen</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="glow"></div>
+    <div class="wrap">
+      <span class="pill"><i></i>Kostenlos für Windows</span>
+      <h1>Kleine Schritte.<br><span class="grad">Jeden Tag.</span></h1>
+      <p class="lead">Tageswerk bringt Gewohnheiten, Aufgaben, Kalender und deine Fortschritte in eine ruhige, schnelle Desktop-App. Ohne Konto, ohne Abo, und deine Daten bleiben auf deinem PC.</p>
+      <div class="cta">
+        <a class="btn primary big dl" href="https://github.com/bastibrm/tageswerk/releases/latest">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>Für Windows herunterladen</a>
+        <a class="btn ghost big" href="#video"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>Video ansehen</a>
+      </div>
+      <div class="meta" id="meta">Windows 10 und 11 · Deutsch und Englisch · Updates kommen automatisch</div>
+      <div class="shot-hero reveal"><div class="frame"><img src="img/heute.jpg" alt="Die Startseite von Tageswerk mit Tagesübersicht, Zeitleiste und Gewohnheiten" width="1600" height="960"></div></div>
+    </div>
+  </header>
+
+  <section id="video">
+    <div class="wrap">
+      <div class="sec-head reveal"><div class="eyebrow">In 90 Sekunden</div><h2>So sieht Tageswerk aus</h2></div>
+      <div class="video frame reveal"><video controls preload="none" poster="video/poster.jpg" playsinline><source src="video/tageswerk.mp4" type="video/mp4"></video></div>
+    </div>
+  </section>
+
+  <section id="funktionen">
+    <div class="wrap">
+      <div class="sec-head reveal"><div class="eyebrow">Funktionen</div><h2>Alles für deinen Tag.<br><span class="grad">An einem Ort.</span></h2></div>
+
+      <div class="features">
+        <div class="feature reveal">
+          <div class="text">
+            <div class="eyebrow">Startseite</div>
+            <h3>Dein Tag auf einen Blick</h3>
+            <p class="muted">Eine Zeitleiste zeigt Termine, Aufgaben und deine Gewohnheiten nach Tageszeit. Dazu siehst du, was als Nächstes ansteht, das Wetter und dein XP-Tagesziel.</p>
+            <ul>
+              <li>Schnell-Eingabe: „Zahnarzt morgen 14 Uhr“ wird automatisch ein Termin</li>
+              <li>Hinweis am Abend, wenn eine lange Serie noch offen ist</li>
+              <li>Geburtstage aus dem Kalender und ein Mini-Monatskalender</li>
+            </ul>
+          </div>
+          <div class="frame"><img src="img/heute.jpg" alt="Startseite" loading="lazy"></div>
+        </div>
+
+        <div class="feature reveal">
+          <div class="text">
+            <div class="eyebrow">Gewohnheiten</div>
+            <h3>Dein ganzer Monat, Haken für Haken</h3>
+            <p class="muted">Abhaken oder Mengen zählen, morgens, mittags oder abends. In der Monatsübersicht trägst du Vergessenes einfach nach.</p>
+            <ul>
+              <li>Serien, Pausen und Abzeichen für 7, 30, 66, 100 und 365 Tage</li>
+              <li>Stimmung und kurze Notiz für jeden Tag</li>
+              <li>Erinnerung am Abend, wenn noch etwas offen ist</li>
+            </ul>
+          </div>
+          <div class="frame"><img src="img/uebersicht.jpg" alt="Monatsübersicht der Gewohnheiten" loading="lazy"></div>
+        </div>
+
+        <div class="feature reveal">
+          <div class="text">
+            <div class="eyebrow">Statistiken</div>
+            <h3>Sieh, wo du besser wirst</h3>
+            <p class="muted">Verläufe, Vergleiche mit dem Zeitraum davor, deine stärksten Wochentage und eine Aktivitätskarte. Von Rot bis Grün auf einen Blick.</p>
+            <ul>
+              <li>7, 30 oder 90 Tage</li>
+              <li>Was dir guttut: Stimmung mit und ohne eine Gewohnheit</li>
+              <li>Wochenrückblick jeden Sonntag</li>
+            </ul>
+          </div>
+          <div class="frame"><img src="img/statistiken.jpg" alt="Statistiken" loading="lazy"></div>
+        </div>
+
+        <div class="feature reveal">
+          <div class="text">
+            <div class="eyebrow">Kalender und Aufgaben</div>
+            <h3>Plane deine Woche</h3>
+            <p class="muted">Monats- und Wochenansicht, Termine per Maus verschieben, Aufgaben mit Fälligkeit. Google, Outlook und Apple lassen sich einbinden.</p>
+            <ul>
+              <li>Erinnerungen vor Terminen als Windows-Benachrichtigung</li>
+              <li>Wiederkehrende Termine</li>
+              <li>Aufgaben erscheinen direkt im Kalender</li>
+            </ul>
+          </div>
+          <div class="frame"><img src="img/kalender.jpg" alt="Kalender in der Wochenansicht" loading="lazy"></div>
+        </div>
+
+        <div class="feature reveal">
+          <div class="text">
+            <div class="eyebrow">Level und Ränge</div>
+            <h3>Vom Lehrling zur Legende</h3>
+            <p class="muted">Für Gewohnheiten, Aufgaben und deine Stimmung sammelst du XP und steigst auf: Geselle, Handwerker, Meister und weiter bis zur Legende.</p>
+            <ul>
+              <li>XP-Tagesziel auf der Startseite</li>
+              <li>Abzeichen für lange Serien geben extra XP</li>
+            </ul>
+          </div>
+          <div class="frame"><img src="img/level.jpg" alt="Level und Ränge" loading="lazy"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-head reveal"><div class="eyebrow">Nur wenn du sie brauchst</div><h2>Zwei Bereiche zum Freischalten</h2><p class="muted">Tageswerk bleibt aufgeräumt. Arbeitszeit und Finanzen sind zuerst ausgeblendet und lassen sich mit einem Klick dazuschalten.</p></div>
+      <div class="duo">
+        <div class="card reveal">
+          <img src="img/stundenplan.jpg" alt="Stundenplan mit Stempeluhr" loading="lazy">
+          <div class="body"><span class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0"/></svg>Freischaltbar</span>
+            <h3>Arbeitszeit</h3><p>Stundenplan in halben Stunden, Ein- und Ausstempeln mit Pausen, auch über das Symbol in der Taskleiste. Grün heißt gearbeitet, rot heißt verpasst.</p></div>
+        </div>
+        <div class="card reveal">
+          <img src="img/finanzen.jpg" alt="Finanzen mit Kategorien und Abos" loading="lazy">
+          <div class="body"><span class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0"/></svg>Freischaltbar</span>
+            <h3>Finanzen</h3><p>Kontoauszug als CSV hochladen: Ausgaben nach Kategorien, Abos und Budgets. Ohne Bank-Login, die Datei bleibt auf deinem PC.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:0">
+    <div class="wrap">
+      <div class="grid3">
+        <div class="card reveal" style="--c:var(--good)"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><h4>Deine Daten bleiben bei dir</h4><p>Kein Konto, keine Cloud, keine Werbung. Alles liegt als Datei auf deinem PC, mit automatischer Sicherung jede Woche.</p></div>
+        <div class="card reveal" style="--c:var(--cyan)"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="13" height="10" rx="2"/><rect x="11" y="10" width="11" height="10" rx="2"/></svg></div><h4>Auf zwei PCs</h4><p>Leg deine Daten in einen OneDrive-, Dropbox- oder Google-Drive-Ordner. Laptop und Desktop bleiben dann von selbst gleich.</p></div>
+        <div class="card reveal" style="--c:var(--violet)"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 7v5l3 2"/><path d="M17 3h4v4"/></svg></div><h4>Immer aktuell</h4><p>Neue Versionen lädt Tageswerk im Hintergrund und installiert sie beim nächsten Start. Hell oder dunkel, Deutsch oder Englisch.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="fragen" style="padding-top:20px">
+    <div class="wrap">
+      <div class="sec-head reveal"><div class="eyebrow">Fragen</div><h2>Gut zu wissen</h2></div>
+      <div class="faq reveal">
+        <details><summary>Kostet Tageswerk etwas?</summary><p>Nein. Tageswerk ist komplett kostenlos, ohne Abo, ohne Werbung und ohne Konto.</p></details>
+        <details><summary>Windows warnt beim Installieren. Ist das normal?</summary><p>Ja. Windows zeigt „Der Computer wurde durch Windows geschützt“, weil die Datei nicht mit einem kostenpflichtigen Zertifikat signiert ist. Klick auf „Weitere Informationen“ und dann auf „Trotzdem ausführen“. Den Quellcode kannst du auf GitHub ansehen.</p></details>
+        <details><summary>Wo liegen meine Daten?</summary><p>In einer Datei auf deinem PC, normalerweise unter %APPDATA%\Tageswerk. In den Einstellungen kannst du einen anderen Ordner wählen, Sicherungen anlegen und wiederherstellen.</p></details>
+        <details><summary>Kann ich Tageswerk auf Laptop und Desktop nutzen?</summary><p>Ja. Wähl in den Einstellungen unter „Daten“ auf beiden PCs denselben Ordner in OneDrive, Dropbox oder Google Drive. Speichert ein PC, übernimmt der andere die Änderungen nach ein paar Sekunden.</p></details>
+        <details><summary>Gibt es Tageswerk für Mac oder Handy?</summary><p>Im Moment nur für Windows 10 und 11.</p></details>
+        <details><summary>Wie bekomme ich Updates?</summary><p>Automatisch. Tageswerk sucht beim Start und alle 6 Stunden nach einer neuen Version, lädt sie im Hintergrund und installiert sie beim nächsten Neustart.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="final">
+    <div class="wrap">
+      <div class="box reveal">
+        <h2>Fang heute an.<br><span class="grad">Klein reicht.</span></h2>
+        <p class="muted" style="margin:0 auto 30px;max-width:520px">Lade Tageswerk herunter und leg deine erste Gewohnheit an. Es dauert keine Minute.</p>
+        <a class="btn primary big dl" href="https://github.com/bastibrm/tageswerk/releases/latest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>Für Windows herunterladen</a>
+        <div class="meta dl-meta"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap"><span>Tageswerk · kostenlos für Windows</span><span><a href="https://github.com/bastibrm/tageswerk">Quellcode auf GitHub</a> · <a href="https://github.com/bastibrm/tageswerk/releases">Alle Versionen</a></span></div>
+  </footer>
+
+  <div class="lightbox" id="lightbox"><img alt=""></div>
+
+  <script>
+    // Direkter Download-Link zur neuesten Setup-Datei, sonst bleibt der Link zur Release-Seite
+    fetch('https://api.github.com/repos/bastibrm/tageswerk/releases/latest')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((rel) => {
+        const exe = rel?.assets?.find((a) => a.name.endsWith('.exe'));
+        if (!exe) return;
+        document.querySelectorAll('a.dl').forEach((a) => { a.href = exe.browser_download_url; });
+        const info = `Version ${rel.tag_name.replace(/^v/, '')} · ${Math.round(exe.size / 1048576)} MB · Windows 10 und 11`;
+        document.querySelectorAll('.dl-meta').forEach((m) => { m.textContent = info; });
+        document.getElementById('meta').textContent = `${info} · Deutsch und Englisch`;
+      })
+      .catch(() => {});
+
+    // Screenshots groß ansehen
+    const lb = document.getElementById('lightbox');
+    document.querySelectorAll('.feature .frame img, .duo img').forEach((img) => img.addEventListener('click', () => {
+      lb.querySelector('img').src = img.src; lb.querySelector('img').alt = img.alt; lb.classList.add('on');
+    }));
+    lb.addEventListener('click', () => lb.classList.remove('on'));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') lb.classList.remove('on'); });
+
+    // Abschnitte beim Scrollen einblenden
+    const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+  </script>
+</body>
+</html>

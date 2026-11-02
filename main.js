@@ -3,7 +3,18 @@ const path = require('path');
 const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
 
-const dataFile = () => path.join(app.getPath('userData'), 'tageswerk-daten.json');
+// Speicherort: normalerweise der App-Ordner. Wer zwei PCs nutzt, wählt z. B. einen OneDrive-Ordner,
+// der Pfad dazu steht in speicherort.json im App-Ordner. Fehlt der Ordner (OneDrive nicht da), gilt der App-Ordner.
+const locFile = () => path.join(app.getPath('userData'), 'speicherort.json');
+function customDir() {
+  try { return JSON.parse(fs.readFileSync(locFile(), 'utf8')).dir || null; } catch { return null; }
+}
+function dataDir() {
+  const d = customDir();
+  return d && fs.existsSync(d) ? d : app.getPath('userData');
+}
+const DATA_NAME = 'tageswerk-daten.json';
+const dataFile = () => path.join(dataDir(), DATA_NAME);
 const backupDir = () => path.join(app.getPath('userData'), 'backups');
 const asset = (name) => path.join(__dirname, 'assets', name);
 const startHidden = process.argv.includes('--hidden');
@@ -185,6 +196,7 @@ function applyAutostart(on) {
 /* ---------- IPC ---------- */
 
 ipcMain.handle('data:load', () => {
+  watchData();
   try {
     return JSON.parse(fs.readFileSync(dataFile(), 'utf8'));
   } catch {
@@ -192,12 +204,64 @@ ipcMain.handle('data:load', () => {
   }
 });
 
-ipcMain.handle('data:save', (_e, data) => {
-  const file = dataFile();
+function writeData(file, data) {
   const tmp = file + '.tmp';
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf8');
   fs.renameSync(tmp, file);
+}
+
+ipcMain.handle('data:save', (_e, data) => {
+  const file = dataFile();
+  writeData(file, data);
+  try { lastOwnWrite = fs.statSync(file).mtimeMs; } catch { /* egal */ }
+  return true;
+});
+
+// Ein anderer PC hat im gemeinsamen Ordner gespeichert: Fenster neu laden lassen
+let watched = null;
+let lastOwnWrite = 0;
+function watchData() {
+  const file = dataFile();
+  if (watched === file) return;
+  if (watched) fs.unwatchFile(watched);
+  watched = null;
+  if (!customDir()) return; // im normalen App-Ordner schreibt niemand sonst
+  watched = file;
+  try { lastOwnWrite = fs.statSync(file).mtimeMs; } catch { lastOwnWrite = 0; }
+  fs.watchFile(file, { interval: 3000 }, (cur) => {
+    if (!cur.mtimeMs || Math.abs(cur.mtimeMs - lastOwnWrite) < 5) return;
+    lastOwnWrite = cur.mtimeMs;
+    win?.webContents.send('data:external');
+  });
+}
+
+ipcMain.handle('data:location', () => {
+  const custom = customDir();
+  return { dir: dataDir(), custom: !!custom, missing: !!custom && !fs.existsSync(custom), wanted: custom };
+});
+
+ipcMain.handle('data:choose', async () => {
+  const r = await dialog.showOpenDialog(win, { title: 'Ordner für deine Tageswerk-Daten wählen', properties: ['openDirectory', 'createDirectory'] });
+  if (r.canceled || !r.filePaths[0]) return null;
+  const dir = r.filePaths[0];
+  return { dir, exists: fs.existsSync(path.join(dir, DATA_NAME)) };
+});
+
+// mode 'take': die aktuellen Daten in den neuen Ordner mitnehmen, 'use': die Daten aus dem Ordner verwenden
+ipcMain.handle('data:move', (_e, dir, mode, data) => {
+  if (!dir || !fs.existsSync(dir)) throw new Error('Ordner nicht gefunden');
+  if (mode === 'take') writeData(path.join(dir, DATA_NAME), data);
+  fs.writeFileSync(locFile(), JSON.stringify({ dir }, null, 2), 'utf8');
+  watchData();
+  return true;
+});
+
+// Zurück in den App-Ordner, die aktuellen Daten kommen mit
+ipcMain.handle('data:reset-location', (_e, data) => {
+  writeData(path.join(app.getPath('userData'), DATA_NAME), data);
+  try { fs.unlinkSync(locFile()); } catch { /* war schon weg */ }
+  watchData();
   return true;
 });
 

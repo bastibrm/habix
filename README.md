@@ -2,6 +2,8 @@
 
 Kleine Schritte. Jeden Tag.
 
+**Webseite und Download:** https://bastibrm.github.io/tageswerk/
+
 Tageswerk ist eine kostenlose Desktop-App für Windows: Gewohnheiten, Aufgaben, Kalender, Statistiken und Level an einem Ort. Wer möchte, schaltet zusätzlich Stundenplan mit Stempeluhr und einen Finanzbereich frei. Alle Daten bleiben lokal auf deinem PC.
 
 ## Download
@@ -21,7 +23,7 @@ Windows zeigt beim ersten Start eventuell „Der Computer wurde durch Windows ge
 - **Level und Ränge:** vom Lehrling zur Legende
 - **Arbeit** (freischaltbar): Stundenplan in halben Stunden, Ein- und Ausstempeln mit Pausen, Auswertung
 - **Finanzen** (freischaltbar): Kontoauszug als CSV, Kategorien, Abos, Budgets, ohne Bank-Login
-- Hell und dunkel, Deutsch und Englisch, Backups
+- Hell und dunkel, Deutsch und Englisch, Backups, Speicherort frei wählbar (z. B. OneDrive für zwei PCs)
 
 ## Entwicklung
 

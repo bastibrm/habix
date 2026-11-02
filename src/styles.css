@@ -1534,20 +1534,20 @@ button.sub-row:hover { background: var(--glass-hi); transform: translateX(3px); 
 /* Zeitleiste */
 .tl-allday { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .tl-allday .chip { padding: 3px 10px; font-size: 12px; border-color: color-mix(in srgb, var(--c) 40%, transparent); color: var(--fg); }
-.timeline { position: relative; height: 128px; margin-top: 14px; }
+.timeline { position: relative; height: 140px; margin-top: 18px; }
 .tl-bands, .tl-events { position: absolute; left: 0; right: 0; }
-.tl-bands { top: 0; height: 108px; }
+.tl-bands { top: 0; height: 120px; }
 .tl-band { position: absolute; top: 0; bottom: 0; border-radius: 10px; background: var(--glass); border: 1px solid var(--line); }
-.tl-band span { position: absolute; left: 8px; bottom: 6px; font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: calc(100% - 12px); }
+.tl-band > span { position: absolute; left: 9px; top: 7px; font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: calc(100% - 12px); }
 .tl-band.ok span { color: var(--good); }
-.tl-events { top: 8px; height: 52px; }
+.tl-events { top: 28px; height: 50px; }
 .tl-ev { position: absolute; height: 22px; border-radius: 7px; padding: 0 7px; display: flex; align-items: center; overflow: hidden; font-size: 11.5px; font-weight: 600; color: var(--fg);
   background: color-mix(in srgb, var(--c) 26%, var(--surface)); border-left: 3px solid var(--c); }
 .tl-ev.lane1 { top: 28px; }
 .tl-ev span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tl-ev.task { border-left-style: dotted; }
 .tl-ev.done { opacity: .5; text-decoration: line-through; }
-.tl-now { position: absolute; top: -4px; height: 116px; width: 2px; margin-left: -1px; background: var(--bad); border-radius: 2px; transition: left .6s var(--ease); }
+.tl-now { position: absolute; top: -4px; height: 128px; width: 2px; margin-left: -1px; background: var(--bad); border-radius: 2px; transition: left .6s var(--ease); }
 .tl-now::before { content: ""; position: absolute; top: -3px; left: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--bad); }
 .tl-now span { position: absolute; top: -18px; left: 6px; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--bad); }
 .tl-hours { position: absolute; left: 0; right: 0; bottom: 0; height: 14px; }
@@ -1604,23 +1604,31 @@ body.dash-dragging, body.dash-dragging * { cursor: grabbing !important; }
 .weather-find .input { flex: 1; padding: 9px 12px; font-size: 14px; }
 
 /* Gewohnheiten als Symbole in den Tageszeiten der Zeitleiste */
-.tl-habits { position: absolute; left: 6px; right: 6px; bottom: 26px; display: flex; flex-wrap: wrap; gap: 4px; overflow: hidden; max-height: 24px; }
+/* Platz rundherum, damit die Hover-Animation nicht abgeschnitten wird; was nicht passt, verschwindet sauber am rechten Rand */
+.tl-habits { position: absolute; left: 3px; right: 3px; bottom: 3px; display: flex; flex-wrap: nowrap; gap: 5px; overflow: hidden; padding: 5px 6px; }
 .tl-habit { width: 24px; height: 24px; flex: none; display: grid; place-items: center; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
   background: color-mix(in srgb, var(--c) 18%, var(--surface)); color: var(--c); cursor: pointer; transition: transform .2s var(--spring), background .2s; position: relative; }
 .tl-habit svg.lucide { width: 14px; height: 14px; }
-.tl-habit:hover { transform: translateY(-2px) scale(1.08); background: color-mix(in srgb, var(--c) 30%, var(--surface)); }
+.tl-habit:hover { transform: scale(1.14); background: color-mix(in srgb, var(--c) 30%, var(--surface)); }
 .tl-habit.done { opacity: .45; }
-.tl-habit.done::after { content: ""; position: absolute; right: -3px; bottom: -3px; width: 9px; height: 9px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 2px var(--surface); }
+.tl-habit.done::after { content: ""; position: absolute; right: -2px; bottom: -2px; width: 9px; height: 9px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 2px var(--surface); }
 .habit-row.flash { animation: row-flash 1.4s ease; }
 @keyframes row-flash { 0%, 60% { box-shadow: 0 0 0 2px var(--c), 0 0 24px -4px var(--c); } 100% { box-shadow: 0 0 0 0 transparent; } }
 
 /* Gedanke des Tages oben mittig in der Titelleiste */
-.title-thought { position: absolute; left: 50%; top: 0; height: 44px; transform: translateX(-50%); max-width: calc(100% - 640px); display: flex; align-items: center; gap: 8px;
+.title-thought { position: absolute; left: 50%; top: 0; height: 44px; transform: translateX(-50%); max-width: calc(100% - 980px); display: flex; align-items: center; gap: 8px;
   color: var(--muted); font-size: 13px; font-style: italic; white-space: nowrap; pointer-events: none; animation: title-in .6s ease; }
 @keyframes title-in { from { opacity: 0; } }
 .title-thought span { overflow: hidden; text-overflow: ellipsis; }
 .title-thought svg.lucide { width: 14px; height: 14px; color: var(--violet); flex: none; }
 .title-thought:empty { display: none; }
-@media (max-width: 1150px) { .title-thought { display: none; } }
+@media (max-width: 1380px) { .title-thought { display: none; } }
 .info-pill.action { cursor: pointer; font: inherit; font-size: 13px; }
 .info-pill.action:hover { color: var(--fg); border-color: var(--line-hi); }
+
+/* Einstellungen: Speicherort */
+.storage { display: flex; flex-direction: column; gap: 10px; }
+.storage-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--glass); }
+.storage-row > svg.lucide { width: 18px; height: 18px; color: var(--cyan); flex: none; }
+.storage-text { display: flex; flex-direction: column; gap: 2px; flex: 1 1 220px; min-width: 0; font-size: 13px; }
+.storage-text .mono { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

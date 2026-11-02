@@ -412,6 +412,7 @@ function viewSettings() {
     </article>
     <article class="card s12 fade-in">
       <div class="card-head"><div><h2>Daten</h2><div class="sub">Alles bleibt lokal auf diesem PC.</div></div></div>
+      ${desktop ? storageSetting() : ''}
       <div class="btn-row">
         ${desktop ? `<button class="btn small ghost" data-action="reveal">${icon('folder')}Speicherort öffnen</button>` : ''}
         ${!active().length && !state.demo ? `<button class="btn small" data-action="demo">${icon('sparkles')}Beispieldaten laden</button>` : ''}
@@ -679,7 +680,7 @@ function extrasAction(a, el) {
     case 'relaunch': relaunchApp(); break;
     case 'update-check': ui.update = { ...ui.update, status: 'checking' }; render('update'); window.api?.updateCheck(); break;
     case 'update-install': window.api?.updateInstall(); break;
-    default: if (!calendarAction(a, el) && !taskAction(a, el) && !onboardingAction(a, el) && !financeAction(a, el) && !levelAction(a, el) && !dashAction(a, el)) workAction(a, el);
+    default: if (!calendarAction(a, el) && !taskAction(a, el) && !onboardingAction(a, el) && !financeAction(a, el) && !levelAction(a, el) && !dashAction(a, el) && !(a.startsWith('loc-') && storageAction(a))) workAction(a, el);
   }
 }
 
