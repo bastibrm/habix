@@ -13,11 +13,44 @@ function dataDir() {
   const d = customDir();
   return d && fs.existsSync(d) ? d : app.getPath('userData');
 }
-const DATA_NAME = 'tageswerk-daten.json';
+const DATA_NAME = 'habix-daten.json';
 const dataFile = () => path.join(dataDir(), DATA_NAME);
+
+/* Die App hieß früher Tageswerk. Ihre Daten lagen in %APPDATA%\Tageswerk als tageswerk-daten.json (bzw. im gewählten Ordner).
+   Beim Start wird übernommen, was dort neuer ist als die Habix-Datei. Nach dem Update ändert sich die alte Datei nicht mehr,
+   dann passiert hier nichts mehr. Die alte Datei bleibt zur Sicherheit liegen, eine überschriebene neue wird vorher gesichert. */
+const OLD_NAME = 'tageswerk-daten.json';
+function adoptOld(oldFile, newFile) {
+  try {
+    if (!fs.existsSync(oldFile)) return false;
+    if (fs.existsSync(newFile)) {
+      if (fs.statSync(oldFile).mtimeMs <= fs.statSync(newFile).mtimeMs) return false;
+      fs.copyFileSync(newFile, newFile.replace(/\.json$/, '.vor-uebernahme.json'));
+    }
+    fs.mkdirSync(path.dirname(newFile), { recursive: true });
+    fs.copyFileSync(oldFile, newFile);
+    return true;
+  } catch { return false; }
+}
+function migrateFromTageswerk() {
+  const userData = app.getPath('userData');
+  const oldUser = path.join(app.getPath('appData'), 'Tageswerk');
+  if (oldUser !== userData && fs.existsSync(oldUser)) {
+    adoptOld(path.join(oldUser, OLD_NAME), path.join(userData, DATA_NAME));
+    // Gewählter Speicherort und Sicherungen kommen beim ersten Mal mit
+    const oldLoc = path.join(oldUser, 'speicherort.json');
+    if (fs.existsSync(oldLoc) && !fs.existsSync(locFile())) fs.copyFileSync(oldLoc, locFile());
+    const oldBackups = path.join(oldUser, 'backups');
+    if (fs.existsSync(oldBackups) && !fs.existsSync(backupDir())) fs.cpSync(oldBackups, backupDir(), { recursive: true });
+  }
+  // Im eigenen Ordner (z. B. OneDrive) liegt die Datei ebenfalls noch unter dem alten Namen
+  const d = customDir();
+  if (d && fs.existsSync(d)) adoptOld(path.join(d, OLD_NAME), path.join(d, DATA_NAME));
+}
 const backupDir = () => path.join(app.getPath('userData'), 'backups');
 const asset = (name) => path.join(__dirname, 'assets', name);
 const startHidden = process.argv.includes('--hidden');
+try { migrateFromTageswerk(); } catch { /* ohne alte Daten einfach weiter */ }
 
 // Zeitzone: muss vor dem ersten Fenster gesetzt sein, eine Änderung braucht deshalb einen Neustart
 const systemTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -41,7 +74,7 @@ let updateState = { status: 'idle', version: null, progress: 0, error: null };
 // Nur eine Instanz: ein zweiter Start holt das vorhandene Fenster nach vorn
 if (!app.requestSingleInstanceLock()) app.quit();
 app.on('second-instance', () => showWindow());
-app.setAppUserModelId('Tageswerk');
+app.setAppUserModelId('Habix');
 
 // Fensterknöpfe oben rechts: durchsichtig, Symbolfarbe passend zum Theme
 function overlayColors() {
@@ -56,7 +89,7 @@ function createWindow() {
     height: 860,
     minWidth: 1000,
     minHeight: 660,
-    title: 'Tageswerk',
+    title: 'Habix',
     icon: asset('icon.png'),
     show: false,
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#141517' : '#eef0f2',
@@ -106,9 +139,9 @@ function quit() {
 
 const MAIN_EN = {
   'Nicht eingestempelt': 'Not clocked in', 'Ausstempeln': 'Clock out', 'Einstempeln': 'Clock in',
-  'Pause beenden': 'End break', 'Pause machen': 'Take a break', 'Tageswerk öffnen': 'Open Tageswerk', 'Beenden': 'Quit',
+  'Pause beenden': 'End break', 'Pause machen': 'Take a break', 'Habix öffnen': 'Open Habix', 'Beenden': 'Quit',
   'Alle Gewohnheiten erledigt': 'All habits done', 'Backup speichern': 'Save backup', 'Backup wiederherstellen': 'Restore backup',
-  'Tageswerk-Backup': 'Tageswerk backup', 'Kalender importieren': 'Import calendar', 'Kalender': 'Calendar', 'Kontoauszug importieren': 'Import bank statement',
+  'Habix-Backup': 'Habix backup', 'Kalender importieren': 'Import calendar', 'Kalender': 'Calendar', 'Kontoauszug importieren': 'Import bank statement',
 };
 const L = (de) => (settings.lang === 'en' ? MAIN_EN[de] || de : de);
 
@@ -127,7 +160,7 @@ function updateTray() {
   const statusLine = s.clocked
     ? (s.paused ? (en ? `On a break · clocked in since ${s.since}` : `Pause · seit ${s.since} Uhr eingestempelt`) : (en ? `Clocked in since ${s.since}` : `Eingestempelt seit ${s.since} Uhr`))
     : L('Nicht eingestempelt');
-  tray.setToolTip(s.work ? `Tageswerk · ${statusLine} · ${en ? 'today' : 'heute'} ${s.today} h` : 'Tageswerk');
+  tray.setToolTip(s.work ? `Habix · ${statusLine} · ${en ? 'today' : 'heute'} ${s.today} h` : 'Habix');
   tray.setContextMenu(Menu.buildFromTemplate([
     ...(s.work ? [{ label: statusLine, enabled: false }, { label: en ? `Worked today: ${s.today} h` : `Heute gearbeitet: ${s.today} h`, enabled: false }] : []),
     { label: s.open ? (en ? `${s.open} ${s.open === 1 ? 'habit' : 'habits'} left` : `${s.open} ${s.open === 1 ? 'Gewohnheit' : 'Gewohnheiten'} offen`) : L('Alle Gewohnheiten erledigt'), enabled: false },
@@ -136,7 +169,7 @@ function updateTray() {
     ...(s.work ? [{ label: L(s.clocked ? 'Ausstempeln' : 'Einstempeln'), click: () => sendTray('clock') }] : []),
     ...(s.work && s.clocked ? [{ label: L(s.paused ? 'Pause beenden' : 'Pause machen'), click: () => sendTray('pause') }] : []),
     { type: 'separator' },
-    { label: L('Tageswerk öffnen'), click: showWindow },
+    { label: L('Habix öffnen'), click: showWindow },
     { label: L('Beenden'), click: quit },
   ]));
 }
@@ -191,6 +224,8 @@ function applyAutostart(on) {
   // In der Entwicklung startet electron.exe mit dem App-Ordner, in der fertigen .exe direkt
   const args = app.isPackaged ? ['--hidden'] : [app.getAppPath(), '--hidden'];
   app.setLoginItemSettings({ openAtLogin: !!on, path: process.execPath, args });
+  // Die App hieß früher Tageswerk: deren Eintrag zeigt nach dem Update auf eine gelöschte .exe und wird entfernt
+  app.setLoginItemSettings({ openAtLogin: false, name: 'Tageswerk' });
 }
 
 /* ---------- IPC ---------- */
@@ -242,9 +277,10 @@ ipcMain.handle('data:location', () => {
 });
 
 ipcMain.handle('data:choose', async () => {
-  const r = await dialog.showOpenDialog(win, { title: 'Ordner für deine Tageswerk-Daten wählen', properties: ['openDirectory', 'createDirectory'] });
+  const r = await dialog.showOpenDialog(win, { title: 'Ordner für deine Habix-Daten wählen', properties: ['openDirectory', 'createDirectory'] });
   if (r.canceled || !r.filePaths[0]) return null;
   const dir = r.filePaths[0];
+  adoptOld(path.join(dir, OLD_NAME), path.join(dir, DATA_NAME));
   return { dir, exists: fs.existsSync(path.join(dir, DATA_NAME)) };
 });
 
@@ -303,8 +339,8 @@ const stamp = () => new Date().toISOString().slice(0, 10);
 ipcMain.handle('backup:export', async (_e, data) => {
   const r = await dialog.showSaveDialog(win, {
     title: L('Backup speichern'),
-    defaultPath: path.join(app.getPath('documents'), `tageswerk-backup-${stamp()}.json`),
-    filters: [{ name: L('Tageswerk-Backup'), extensions: ['json'] }],
+    defaultPath: path.join(app.getPath('documents'), `habix-backup-${stamp()}.json`),
+    filters: [{ name: L('Habix-Backup'), extensions: ['json'] }],
   });
   if (r.canceled || !r.filePath) return { ok: false };
   fs.writeFileSync(r.filePath, JSON.stringify(data, null, 2), 'utf8');
@@ -315,7 +351,7 @@ ipcMain.handle('backup:import', async () => {
   const r = await dialog.showOpenDialog(win, {
     title: L('Backup wiederherstellen'),
     properties: ['openFile'],
-    filters: [{ name: L('Tageswerk-Backup'), extensions: ['json'] }],
+    filters: [{ name: L('Habix-Backup'), extensions: ['json'] }],
   });
   if (r.canceled || !r.filePaths[0]) return null;
   try {
@@ -329,8 +365,10 @@ ipcMain.handle('backup:import', async () => {
 ipcMain.handle('backup:auto', (_e, data) => {
   const dir = backupDir();
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, `tageswerk-${stamp()}.json`), JSON.stringify(data), 'utf8');
-  const files = fs.readdirSync(dir).filter((f) => /^tageswerk-\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort();
+  fs.writeFileSync(path.join(dir, `habix-${stamp()}.json`), JSON.stringify(data), 'utf8');
+  // Auch die alten Sicherungen von Tageswerk zählen mit, sortiert nach Datum
+  const day = (f) => f.match(/^(?:habix|tageswerk)-(\d{4}-\d{2}-\d{2})\.json$/)?.[1];
+  const files = fs.readdirSync(dir).filter(day).sort((a, b) => day(a).localeCompare(day(b)));
   for (const f of files.slice(0, Math.max(0, files.length - 8))) fs.unlinkSync(path.join(dir, f));
   return true;
 });
@@ -344,21 +382,6 @@ ipcMain.handle('cal:fetch', async (_e, url) => {
   const text = await r.text();
   if (text.length > 20 * 1024 * 1024) throw new Error('Kalender zu groß');
   return text;
-});
-
-// Wetter von Open-Meteo (frei, ohne Konto). Nur diese beiden Adressen werden abgefragt.
-async function getJson(url) {
-  const r = await net.fetch(url, { headers: { Accept: 'application/json' } });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.json();
-}
-ipcMain.handle('weather:get', (_e, lat, lon) => {
-  const q = new URLSearchParams({ latitude: Number(lat), longitude: Number(lon), current: 'temperature_2m,weather_code', daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max', timezone: 'auto', forecast_days: 1 });
-  return getJson(`https://api.open-meteo.com/v1/forecast?${q}`);
-});
-ipcMain.handle('weather:find', (_e, name, lang) => {
-  const q = new URLSearchParams({ name: String(name).slice(0, 80), count: 1, language: lang === 'en' ? 'en' : 'de', format: 'json' });
-  return getJson(`https://geocoding-api.open-meteo.com/v1/search?${q}`);
 });
 
 ipcMain.handle('cal:file', async () => {

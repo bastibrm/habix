@@ -370,7 +370,7 @@ function viewSettings() {
       <input type="checkbox" class="switch" data-setting="${key}" id="set-${key}" ${s[key] ? 'checked' : ''}>
     </label>`;
   return `
-  <header class="head fade-in"><div><div class="eyebrow">Tageswerk</div><h1>Einstellungen</h1></div></header>
+  <header class="head fade-in"><div><div class="eyebrow">Habix</div><h1>Einstellungen</h1></div></header>
   <section class="settings-cols">
    <div class="settings-col">
     <article class="card s12 fade-in">
@@ -450,7 +450,7 @@ function viewSettings() {
         ${sw('autostart', 'Mit Windows starten', 'Startet unsichtbar im Hintergrund, das Symbol erscheint unten rechts')}
         ${sw('closeToTray', 'Beim Schließen weiterlaufen', 'Das X versteckt die App nur. Beenden geht über das Symbol unten rechts.')}
       </div>
-      <div class="setting-note">${icon('info')}<span>Ein Klick auf das Symbol unten rechts öffnet Tageswerk, ein Rechtsklick zeigt Einstempeln, Pause und Ausstempeln.</span></div>`
+      <div class="setting-note">${icon('info')}<span>Ein Klick auf das Symbol unten rechts öffnet Habix, ein Rechtsklick zeigt Einstempeln, Pause und Ausstempeln.</span></div>`
       : '<div class="muted">Nur in der Desktop-App verfügbar.</div>'}
     </article>
     ${updatesCard()}
@@ -627,7 +627,7 @@ async function backupImport() {
   try {
     const r = await window.api.backupImport();
     if (!r) return;
-    if (r.error || !r.data || !Array.isArray(r.data.habits)) { toast('Diese Datei ist kein Tageswerk-Backup.'); return; }
+    if (r.error || !r.data || !Array.isArray(r.data.habits)) { toast('Diese Datei ist kein Habix-Backup.'); return; }
     ui.pendingImport = r;
     render('update');
   } catch { toast('Die Datei konnte nicht gelesen werden.'); }
@@ -670,7 +670,7 @@ function extrasAction(a, el) {
     }
     case 'review': openReview(); break;
     case 'test-notify':
-      notify('So sehen deine Erinnerungen aus', 'Tageswerk meldet sich hier, auch wenn das Fenster zu ist.');
+      notify('So sehen deine Erinnerungen aus', 'Habix meldet sich hier, auch wenn das Fenster zu ist.');
       break;
     case 'backup-export': backupExport(); break;
     case 'backup-import': backupImport(); break;

@@ -121,7 +121,7 @@ app.whenReady().then(async () => {
   await new Promise((r) => ff.on('close', r));
 
   // Ton dazu
-  const finalFile = path.join(OUT, 'Tageswerk-Promo.mp4');
+  const finalFile = path.join(OUT, 'Habix-Promo.mp4');
   await new Promise((r) => spawn(ffmpeg, ['-y', '-loglevel', 'error', '-i', videoFile, '-i', path.join(OUT, 'audio.wav'),
     '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-shortest', '-movflags', '+faststart', finalFile], { stdio: 'inherit' }).on('close', r));
   log('Fertig:', finalFile);

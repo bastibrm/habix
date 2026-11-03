@@ -27,6 +27,4 @@ contextBridge.exposeInMainWorld('api', {
   calFetch: (url) => ipcRenderer.invoke('cal:fetch', url),
   calFile: () => ipcRenderer.invoke('cal:file'),
   finFile: () => ipcRenderer.invoke('fin:file'),
-  weather: (lat, lon) => ipcRenderer.invoke('weather:get', lat, lon),
-  weatherFind: (name, lang) => ipcRenderer.invoke('weather:find', name, lang),
 });

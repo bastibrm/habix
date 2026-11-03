@@ -41,7 +41,7 @@ const MOODS = [
 const DEFAULT_SETTINGS = {
   remindHabits: true, remindHabitsAt: '20:00', remindShift: true, remindShiftMin: 10, remindClockOut: true,
   weeklyReview: true, closeToTray: true, autostart: false, timeZone: 'system', remindEvents: true, remindEventsMin: 15, lang: 'de',
-  xpGoal: 60, weatherPlace: null,
+  xpGoal: 60,
 };
 
 /* ================= Zustand ================= */
@@ -540,9 +540,9 @@ function viewEmpty(extra = '') {
   <section class="grid welcome">
     ${extra}
     <article class="card s8 hero fade-in">
-      <div class="eyebrow">${esc(fmtLong(todayKey()))} · Willkommen bei Tageswerk</div>
+      <div class="eyebrow">${esc(fmtLong(todayKey()))} · Willkommen bei Habix</div>
       <h1 class="hero-title">Kleine Schritte.<br><span>Jeden Tag.</span></h1>
-      <p class="hero-text">Tageswerk hilft dir, Gewohnheiten aufzubauen und deine Arbeitszeit im Blick zu behalten.
+      <p class="hero-text">Habix hilft dir, Gewohnheiten aufzubauen und deine Arbeitszeit im Blick zu behalten.
         Du hakst ab, was du geschafft hast, planst deine Woche in halben Stunden und siehst schwarz auf weiß, wo du besser wirst.</p>
       <div class="hero-actions">
         <button class="btn primary" data-action="new-habit">${icon('plus')}Erste Gewohnheit anlegen</button>
@@ -1268,28 +1268,41 @@ function addSession(e) {
 
 /* ================= Planen per Klicken und Ziehen ================= */
 
-function paintCell(cell) {
-  const k = cell.dataset.day, i = Number(cell.dataset.slot);
-  const set = new Set(state.plan[k] || []);
-  if (ui.paint.value === set.has(i)) return;
-  if (ui.paint.value) set.add(i); else set.delete(i);
-  if (set.size) state.plan[k] = [...set].sort((a, b) => a - b); else delete state.plan[k];
-  cell.classList.add('painting');
-  cell.classList.toggle('planned', ui.paint.value);
-  ui.paint.changed = true;
+/* Vom ersten Feld bis zum Feld unter der Maus wird alles gesetzt (bzw. gelöscht). Zieht man wieder zurück, bekommen die
+   Felder außerhalb dieses Bereichs ihren Zustand von vorher zurück, ohne dass man loslassen muss. */
+function paintRange(cell) {
+  const p = ui.paint;
+  const d = cell.dataset.day, s = Number(cell.dataset.slot);
+  if (p.cur === `${d}|${s}`) return;
+  p.cur = `${d}|${s}`;
+  const [d0, d1] = [p.day, d].sort(), [s0, s1] = [Math.min(p.slot, s), Math.max(p.slot, s)];
+  const sets = {};
+  for (const el of document.querySelectorAll('.slot')) {
+    const k = el.dataset.day, i = Number(el.dataset.slot);
+    const want = k >= d0 && k <= d1 && i >= s0 && i <= s1 ? p.value : (p.orig[k] || []).includes(i);
+    const set = (sets[k] ||= new Set(state.plan[k] || []));
+    if (want === set.has(i)) continue;
+    if (want) set.add(i); else set.delete(i);
+    el.classList.add('painting');
+    el.classList.toggle('planned', want);
+  }
+  for (const [k, set] of Object.entries(sets)) if (set.size) state.plan[k] = [...set].sort((a, b) => a - b); else delete state.plan[k];
+  p.changed = JSON.stringify(state.plan) !== p.origJson;
 }
 
 document.addEventListener('pointerdown', (e) => {
   const cell = e.target.closest('.slot');
   if (!cell || e.button !== 0) return;
   e.preventDefault();
-  ui.paint = { value: !(state.plan[cell.dataset.day] || []).includes(Number(cell.dataset.slot)), changed: false };
-  paintCell(cell);
+  const origJson = JSON.stringify(state.plan);
+  ui.paint = { value: !(state.plan[cell.dataset.day] || []).includes(Number(cell.dataset.slot)), changed: false,
+    day: cell.dataset.day, slot: Number(cell.dataset.slot), orig: JSON.parse(origJson), origJson, cur: null };
+  paintRange(cell);
 });
 document.addEventListener('pointerover', (e) => {
   if (!ui.paint) return;
   const cell = e.target.closest('.slot');
-  if (cell) paintCell(cell);
+  if (cell) paintRange(cell);
 });
 window.addEventListener('pointerup', () => {
   if (!ui.paint) return;

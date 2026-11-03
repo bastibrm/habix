@@ -1,7 +1,9 @@
 'use strict';
 
-/* Bühne (Version 3): ruhiger Produktfilm mit Gesamtansichten und gezielten Zooms. Zu jeder Zeit t berechnet renderAt(t) das komplette Bild.
-   Die Kamera richtet sich auf Elemente der echten App aus, Aktionen und Klicks laufen in der App selbst. */
+/* Bühne (Version 4, Habix): ruhiger Produktfilm auf den Takten von „Long Road“. Zu jeder Zeit t berechnet renderAt(t) das komplette Bild.
+   Die Kamera richtet sich auf Elemente der echten App aus, Aktionen und Klicks laufen in der App selbst.
+   Neu: Lichtstreifen bei Schnitten, Logo-Intro mit Lichtpartikeln,
+   Kreis-Überblendung beim Wechsel auf Hell, Unterstreichung der Überschriften. */
 
 const TL = window.TIMELINE;
 const { E } = TL;
@@ -20,6 +22,8 @@ const frames = (n = 2) => new Promise((r) => { const step = () => (--n <= 0 ? r(
 
 // Fester Zufall, damit jedes Rendern gleich aussieht
 function rng(seed) { return () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let x = Math.imul(seed ^ (seed >>> 15), 1 | seed); x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x; return ((x ^ (x >>> 14)) >>> 0) / 4294967296; }; }
+
+const BLUE = '30,144,255', CYAN = '90,216,255', DEEP = '61,98,255';
 
 let appWin = null, appDoc = null;
 const P = () => appWin.__promo;
@@ -56,7 +60,7 @@ async function prepare() {
   await sleep(400);
   await document.fonts.ready;
   await appDoc.fonts.ready;
-  $('intro-title').innerHTML = [...'Tageswerk'].map((c) => `<span>${c}</span>`).join('');
+  $('intro-title').innerHTML = [...'Habix'].map((c) => `<span>${c}</span>`).join('');
   buildCaptions();
   buildOutro();
   return 'bereit';
@@ -68,14 +72,14 @@ function buildCaptions() {
   $('captions').innerHTML = TL.captions.map((c, i) => {
     if (c.side === 'tag') return `<div class="cap tag" id="cap-${i}"><div class="cap-title word">${c.title[0]}</div></div>`;
     const title = c.title.length === 1
-      ? `<span class="cap-line grad">${words(c.title[0])}</span>`
-      : `<span class="cap-line">${words(c.title[0])}</span><span class="cap-line grad">${words(c.title[1])}</span>`;
+      ? `<span class="cap-line grad">${words(c.title[0])}<i class="uline"></i></span>`
+      : `<span class="cap-line">${words(c.title[0])}</span><span class="cap-line grad">${words(c.title[1])}<i class="uline"></i></span>`;
     return `<div class="cap ${c.side}" id="cap-${i}"><span class="cap-eyebrow word">${c.eyebrow}</span><div class="cap-title">${title}</div>${c.sub ? `<div class="cap-sub">${words(c.sub)}</div>` : ''}</div>`;
   }).join('');
 }
 
 function buildOutro() {
-  const f = ['Gewohnheiten', 'Aufgaben', 'Kalender', 'Arbeitszeit', 'Finanzen', 'Level'];
+  const f = ['Gewohnheiten', 'Aufgaben', 'Kalender', 'Level', 'Arbeitszeit', 'Finanzen'];
   $('outro-features').innerHTML = f.map((x, i) => `<span>${x}</span>${i < f.length - 1 ? '<i>·</i>' : ''}`).join('');
 }
 
@@ -85,6 +89,10 @@ const q = (sel) => appDoc.querySelector(sel);
 const qa = (sel) => [...appDoc.querySelectorAll(sel)];
 const card = (title) => () => qa('.card').find((c) => c.querySelector('h2')?.textContent.trim().startsWith(title));
 const meeting = () => qa('.wk-ev.movable').find((e) => e.textContent.includes('Team-Meeting'));
+const taskRow = (title) => () => qa('.task-row').find((r) => r.textContent.includes(title));
+const taskCheck = (title) => () => taskRow(title)()?.querySelector('.task-check');
+const ym = (i) => () => qa('.ym')[i];
+const dashItem = (id) => () => q(`.dash-item[data-card="${id}"]`);
 
 // Zeile der Monatsübersicht mit einem offenen Tag weit rechts, zum Nachtragen
 let ovRow = null, ovCell = null;
@@ -168,7 +176,7 @@ function applyBuild(t) {
   if (done) build = null;
 }
 
-// Zeiger-Ereignisse für das Verschieben im Kalender
+// Zeiger-Ereignisse für das Verschieben (Kalender und Startseite)
 function pointer(type, target, x, y) {
   target.dispatchEvent(new appWin.PointerEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0, buttons: type === 'pointerup' ? 0 : 1, pointerId: 1, pointerType: 'mouse', isPrimary: true }));
 }
@@ -179,17 +187,21 @@ const C = { x: FW / 2, y: FH / 2 };
 
 // Aktionen in der App, jeweils einmal zur Zeit t
 const ACTS = [
-  { t: 15, fn: (t) => { P().go('stats'); startBuild(t, 2.2); } },
-  { t: 22.5, fn: (t) => { P().habitsPrevMonth(); pickMatrixRow(); startBuild(t, 2.2); } },
-  { t: 31.25, fn: () => { P().calMode('week'); const s = q('#wk-scroll'); if (s) s.scrollTop = 8 * 48 - 10; } },
-  { t: 40, fn: () => P().go('today') },
+  { t: bar(9), fn: (t) => { P().go('tasks'); startBuild(t, 1.4); } },
+  { t: bar(13), fn: (t) => { P().go('stats'); startBuild(t, 2.2); } },
+  { t: bar(16), fn: (t) => { P().habitsPrevMonth(); pickMatrixRow(); startBuild(t, 2.2); } },
+  { t: bar(19), fn: () => { P().calMode('week'); const s = q('#wk-scroll'); if (s) s.scrollTop = 8 * 48 - 10; } },
+  { t: bar(22), fn: (t) => { P().calMode('year'); startBuild(t, 1.8); } },
+  { t: bar(25), fn: () => P().go('today') },
   { t: E.workCut, fn: (t) => { P().enableWork(); startBuild(t, 1.8); } },
-  { t: 52.5, fn: () => P().go('today') },
-  { t: 60, fn: (t) => { P().enableFinance(); startBuild(t, 2.2); } },
-  { t: 67.5, fn: () => P().go('today') },
-  { t: 75, fn: (t) => { P().go('tasks'); startBuild(t, 1.2); } },
-  { t: 77.5, fn: (t) => { P().theme('light'); P().go('today'); startBuild(t, 1.5); } },
-  { t: 80, fn: () => { P().theme('dark'); P().calMode('month'); } },
+  { t: bar(29), fn: () => P().go('today') },
+  { t: bar(32), fn: () => { appWin.closeModal(); P().go('today'); } },
+  { t: E.finCut, fn: (t) => { P().enableFinance(); startBuild(t, 2.2); } },
+  { t: bar(37), fn: () => { P().dashEdit(true); const s = q('#scroller'); if (s) s.scrollTop = 0; } },
+  { t: bar(40), fn: () => { P().dashEdit(false); const s = q('#scroller'); if (s) s.scrollTop = 0; } },
+  { t: E.themeWipe + 0.22, fn: () => P().theme('light') },
+  { t: bar(42), fn: () => { P().go('settings'); } },
+  { t: bar(43), fn: () => { P().theme('dark'); P().go('today'); } },
 ];
 
 /* Kamera-Punkte. f: worauf gezielt wird (Selektor, Funktion, 'cursor' oder Punkt), s: Zoom,
@@ -201,101 +213,113 @@ const key = (t, o) => K.push({ t, sx: W / 2, sy: H / 2, s: 1, rx: 0, ry: 0, rz: 
 const WIDE = { left: { f: C, s: 0.72, sx: 1290, sy: 560, ry: -9, rx: 3 }, right: { f: C, s: 0.72, sx: 630, sy: 560, ry: 9, rx: 3 } };
 const wide = (t, side, o = {}) => key(t, { ...WIDE[side], ...o });
 const near = (sx) => ({ sx, sy: 560, ry: 0, rx: 0 });
+const CHECK = '.habit-row:not(.is-done):not(.is-amount) .check';
 
 key(0, { f: C, s: 0.6, o: 0 });
-// Heute: Fenster gleitet herein, dann Abhaken und Stimmung aus der Nähe
-key(5.0, { f: C, s: 0.55, sx: 1290, sy: 620, rx: 18, ry: -24, o: 0, cut: true });
-wide(6.4, 'left', { ease: 'soft' });
-wide(7.6, 'left', { s: 0.74 });
-const CHECK = '.habit-row:not(.is-done):not(.is-amount) .check';
-key(8.8, { f: CHECK, s: 1.7, ...near(1240) });
-key(10.2, { f: CHECK, s: 1.75, ...near(1240) });
-wide(11.4, 'left');
-key(12.6, { f: '.mood-4', s: 1.55, ...near(1240) });
-key(15 - 0.01, { f: '.mood-4', s: 1.6, ...near(1240) });
+// Heute: Fenster gleitet herein, Abhaken auf dem Einsatz des Schlagzeugs
+key(bar(3), { f: C, s: 0.55, sx: 1290, sy: 620, rx: 18, ry: -24, o: 0, cut: true });
+wide(bar(3) + 1.4, 'left', { ease: 'soft' });
+wide(bar(4) + 0.4, 'left', { s: 0.74 });
+key(E.checkClick - 0.9, { f: CHECK, s: 1.7, ...near(1240) });
+key(E.checkClick + 1.3, { f: CHECK, s: 1.75, ...near(1240) });
+wide(bar(6) + 0.6, 'left');
+wide(bar(8) + 0.8, 'left');
+wide(bar(9) - 0.01, 'left', { s: 0.74 });
+// Aufgaben: Teilschritte zeigen, eine wiederkehrende Aufgabe abhaken
+wide(bar(9), 'right', { cut: true });
+wide(bar(10) - 0.6, 'right', { s: 0.74 });
+key(bar(10) + 0.3, { f: taskRow('Umzugskartons'), s: 1.45, ...near(660) });
+key(E.taskClick - 0.8, { f: taskCheck('Pflanzen gießen'), s: 1.5, ...near(660) });
+key(E.taskClick + 1.2, { f: taskCheck('Pflanzen gießen'), s: 1.55, ...near(660) });
+wide(bar(12) + 0.8, 'right');
+wide(bar(13) - 0.01, 'right', { s: 0.74 });
 // Statistiken
-wide(15, 'right', { cut: true });
-wide(17.4, 'right', { s: 0.74, ry: 6 });
-key(18.8, { f: card('Verlauf'), s: 1.2, ...near(660) });
-key(20.6, { f: card('Verlauf'), s: 1.24, ...near(660) });
-wide(22.5 - 0.01, 'right', { s: 0.76 });
-// Übersicht: Monat zeigen, eine Zeile entlang zum offenen Tag, nachtragen, wieder zurück
-wide(22.5, 'left', { cut: true });
-wide(25, 'left', { s: 0.74 });
-key(26.4, { f: () => ovCell, s: 1.7, ...near(1240) });
-key(28.2, { f: () => ovCell, s: 1.75, ...near(1240) });
-wide(29.5, 'left');
-wide(31.25 - 0.01, 'left', { s: 0.74 });
-// Kalender: Termin verschieben, Kamera folgt dem Zeiger
-wide(31.25, 'right', { cut: true });
-wide(32.9, 'right', { s: 0.74 });
-key(34.3, { f: meeting, s: 1.45, ...near(680) });
-key(E.dragStart, { f: 'cursor', s: 1.45, ...near(680) });
-key(E.dragEnd, { f: 'cursor', s: 1.45, ...near(680) });
-key(37.6, { f: 'cursor', s: 1.45, ...near(680) });
-wide(38.8, 'right');
-wide(40 - 0.01, 'right', { s: 0.74 });
+wide(bar(13), 'left', { cut: true });
+wide(bar(14) - 0.4, 'left', { s: 0.74 });
+key(bar(14) + 0.6, { f: card('Verlauf'), s: 1.2, ...near(1260) });
+key(bar(15) + 0.9, { f: card('Verlauf'), s: 1.24, ...near(1260) });
+wide(bar(16) - 0.01, 'left', { s: 0.76 });
+// Übersicht: Monat zeigen, zum offenen Tag, nachtragen
+wide(bar(16), 'right', { cut: true });
+wide(bar(17) - 0.4, 'right', { s: 0.74 });
+key(E.matrixClick - 1.1, { f: () => ovCell, s: 1.7, ...near(660) });
+key(E.matrixClick + 0.9, { f: () => ovCell, s: 1.75, ...near(660) });
+wide(bar(19) - 0.01, 'right', { s: 0.74 });
+// Wochenkalender: Termin anfassen und verschieben, Kamera folgt dem Zeiger
+wide(bar(19), 'left', { cut: true });
+wide(bar(20) - 0.6, 'left', { s: 0.74 });
+key(E.dragStart - 0.6, { f: meeting, s: 1.45, ...near(1240) });
+key(E.dragStart, { f: 'cursor', s: 1.45, ...near(1240) });
+key(E.dragEnd, { f: 'cursor', s: 1.45, ...near(1240) });
+key(E.dragEnd + 0.9, { f: 'cursor', s: 1.45, ...near(1240) });
+wide(bar(22) - 0.01, 'left', { s: 0.74 });
+// Jahresansicht: Monate erscheinen nacheinander, dann gleitet die Kamera über das Jahr
+wide(bar(22), 'right', { cut: true });
+wide(bar(23) - 0.3, 'right', { s: 0.74 });
+key(bar(23) + 0.4, { f: ym(1), s: 1.55, ...near(660) });
+key(bar(24) + 1.4, { f: ym(10), s: 1.55, ...near(660) });
+wide(bar(25) - 0.01, 'right', { s: 0.74 });
 // Arbeit freischalten
-wide(40, 'left', { cut: true });
-wide(41.2, 'left', { s: 0.74 });
-key(42.4, { f: '#nav-schedule', s: 1.8, ...near(1200) });
+wide(bar(25), 'left', { cut: true });
+key(E.lockClick - 0.7, { f: '#nav-schedule', s: 1.8, ...near(1200) });
 key(E.lockClick + 0.35, { f: '#nav-schedule', s: 1.85, ...near(1200) });
-key(45.0, { f: '.modal', s: 1.15, ...near(1260) });
-key(46.3, { f: '.modal', s: 1.17, ...near(1260) });
-key(E.activateClick, { f: '[data-action="work-enable"]', s: 1.4, ...near(1260) });
+key(E.lockClick + 1.1, { f: '.modal', s: 1.15, ...near(1260) });
+key(E.activateClick - 0.5, { f: '[data-action="work-enable"]', s: 1.4, ...near(1260) });
 key(E.workCut - 0.01, { f: '[data-action="work-enable"]', s: 1.42, ...near(1260) });
 wide(E.workCut, 'left', { cut: true });
-wide(49.8, 'left', { s: 0.74 });
-key(50.8, { f: '#clock-pill', s: 1.6, ...near(1200), sy: 520 });
-key(52.5 - 0.01, { f: '#clock-pill', s: 1.65, ...near(1200), sy: 520 });
-// Finanzen freischalten
-wide(52.5, 'left', { cut: true });
-key(53.6, { f: '#nav-finance', s: 1.8, ...near(1200) });
-key(E.finLockClick + 0.35, { f: '#nav-finance', s: 1.85, ...near(1200) });
-key(55.8, { f: '.modal', s: 1.15, ...near(1260) });
-key(57.0, { f: '.modal', s: 1.17, ...near(1260) });
-key(E.fileDrop, { f: '[data-action="fin-unlock-import"]', s: 1.4, ...near(1260) });
-key(60 - 0.01, { f: '[data-action="fin-unlock-import"]', s: 1.42, ...near(1260) });
-// Finanzen
-wide(60, 'right', { cut: true });
-wide(62.0, 'right', { s: 0.74 });
-key(63.4, { f: card('Ausgaben nach Kategorie'), s: 1.1, ...near(660) });
-key(65.4, { f: card('Ausgaben nach Kategorie'), s: 1.13, ...near(660) });
-wide(67.5 - 0.01, 'right');
-// Level
-key(67.5, { f: C, s: 0.8, sx: 960, sy: 560, rx: 6, cut: true });
-key(68.4, { f: '#level-card', s: 2.0, sx: 960, sy: 560 });
+key(E.clockClick - 0.9, { f: '#clock-pill', s: 1.6, ...near(1200), sy: 520 });
+key(E.clockClick + 1.0, { f: '#clock-pill', s: 1.65, ...near(1200), sy: 520 });
+wide(bar(29) - 0.01, 'left', { s: 0.74 });
+// Level (ruhige Stelle im Song): Rangliste langsam durchgehen
+key(bar(29), { f: C, s: 0.8, sx: 960, sy: 560, rx: 6, cut: true });
+key(E.levelClick - 0.3, { f: '#level-card', s: 2.0, sx: 960, sy: 560 });
 key(E.levelPanel - 0.01, { f: '#level-card', s: 2.05, sx: 960, sy: 560 });
-key(E.levelPanel, { f: '.modal', s: 1.25, sx: 960, sy: 640, rx: 4, cut: true });
-key(75 - 0.01, { f: '.modal', s: 1.3, sx: 960, sy: 640, rx: 1 });
-// Ruhige Folge: Aufgaben, heller Modus, Monatskalender
-key(75, { f: C, s: 0.8, sy: 500, rx: 6, ry: -8, cut: true });
-key(77.5 - 0.01, { f: C, s: 0.84, sy: 500, rx: 3, ry: -4 });
-key(77.5, { f: C, s: 0.8, sy: 500, rx: 6, ry: 8, cut: true });
-key(80 - 0.01, { f: C, s: 0.84, sy: 500, rx: 3, ry: 4 });
-key(80, { f: C, s: 0.8, sy: 500, rx: 6, ry: -6, cut: true });
-key(82.5 - 0.01, { f: C, s: 0.84, sy: 500, rx: 3, ry: -2 });
+key(E.levelPanel, { f: '.modal', s: 1.12, sx: 960, sy: 660, rx: 4, cut: true });
+key(bar(32) - 0.01, { f: '.modal', s: 1.18, sx: 960, sy: 660, rx: 1 });
+// Finanzen freischalten, Datei landet auf dem Takt
+wide(bar(32), 'left', { cut: true });
+key(E.finLockClick - 0.7, { f: '#nav-finance', s: 1.8, ...near(1200) });
+key(E.finLockClick + 0.35, { f: '#nav-finance', s: 1.85, ...near(1200) });
+key(E.finLockClick + 1.1, { f: '.modal', s: 1.15, ...near(1260) });
+key(E.fileDrop - 0.6, { f: '[data-action="fin-unlock-import"]', s: 1.4, ...near(1260) });
+key(E.finCut - 0.01, { f: '[data-action="fin-unlock-import"]', s: 1.42, ...near(1260) });
+wide(E.finCut, 'right', { cut: true });
+wide(bar(36) - 0.8, 'right', { s: 0.74 });
+key(bar(36), { f: card('Ausgaben nach Kategorie'), s: 1.1, ...near(660) });
+key(bar(37) - 0.01, { f: card('Ausgaben nach Kategorie'), s: 1.13, ...near(660) });
+// Startseite anpassen: eine Karte wandert in die obere Reihe
+key(bar(37), { f: C, s: 0.8, sy: 520, rx: 6, ry: -6, cut: true });
+key(bar(40) - 0.01, { f: C, s: 0.84, sy: 520, rx: 3, ry: -3 });
+// Hell und dunkel
+key(bar(40), { f: C, s: 0.8, sy: 520, rx: 6, ry: 7, cut: true });
+key(bar(42) - 0.01, { f: C, s: 0.84, sy: 520, rx: 3, ry: 3 });
+// Zwei PCs: Speicherort in den Einstellungen
+key(bar(42), { f: () => q('.storage'), s: 1.25, sy: 520, rx: 4, ry: -4, cut: true, bring: true });
+key(bar(43) - 0.01, { f: () => q('.storage'), s: 1.3, sy: 520, rx: 2, ry: -2 });
 // Outro: Fenster kippt nach hinten weg
-key(82.5, { f: C, s: 0.84, sy: 500, rx: 3 });
-key(84.5, { f: C, s: 0.75, sy: 860, rx: 56, o: 0.15, blur: 8 });
+key(bar(43), { f: C, s: 0.84, sy: 500, rx: 3, cut: true });
+key(bar(43) + 2.0, { f: C, s: 0.75, sy: 860, rx: 56, o: 0.15, blur: 8 });
 key(TL.duration, { f: C, s: 0.72, sy: 880, rx: 58, o: 0.12, blur: 8 });
 K.sort((a, b) => a.t - b.t);
-const CUTS = K.filter((k) => k.cut && k.t > 5.5).map((k) => k.t);
+const CUTS = K.filter((k) => k.cut && k.t > bar(3) + 0.5).map((k) => k.t);
 
 /* Mauszeiger. to: Ziel, from: Startversatz zum Ziel, click: echter Klick (delay: etwas später),
-   drag: Verschieben um [dx, dy], carry: trägt die Datei, hold: wie lange der Zeiger danach bleibt */
+   drag: Verschieben um [dx, dy] (dragEl: was angefasst wird), carry: trägt die Datei, hold: wie lange der Zeiger danach bleibt */
+const dashFrom = () => { const el = dashItem('month')(); const r = el.getBoundingClientRect(); return { x: r.left + 60, y: r.top + 34 }; };
 const CURSOR = [
-  { t0: 8.0, t1: E.checkClick, to: CHECK, from: [-240, 150], click: true, xp: 10, hold: 0.9 },
-  { t0: 12.2, t1: E.moodClick, to: '.mood-4', from: [200, 130], click: true, xp: 3, hold: 0.9 },
-  { t0: 25.8, t1: E.matrixClick, to: () => ovCell, from: [-160, 170], click: true, xp: 10, hold: 0.9 },
-  { t0: 33.6, t1: E.dragStart, to: meeting, from: [-200, 170], hold: 0 },
-  { t0: E.dragStart, t1: E.dragEnd, drag: () => { const c = qa('.wk-col'); return [c.length > 1 ? centerOf(c[1]).x - centerOf(c[0]).x : 180, 72]; }, hold: 0.8 },
-  { t0: 42.3, t1: E.lockClick, to: '#nav-schedule', from: [200, 150], click: true, delay: 0.4, lock: true, hold: 0.3 },
-  { t0: 46.2, t1: E.activateClick, to: '[data-action="work-enable"]', from: [140, 160], burst: true, hold: 0.8 },
-  { t0: 50.3, t1: E.clockClick, to: '.clock-main', from: [-190, 170], click: true, hold: 0.8 },
-  { t0: 53.0, t1: E.finLockClick, to: '#nav-finance', from: [200, 150], click: true, delay: 0.4, lock: true, hold: 0.3 },
-  { t0: 57.2, t1: E.fileDrop, to: '[data-action="fin-unlock-import"]', from: [460, 260], carry: true, burst: true, hold: 0.8 },
-  { t0: 68.0, t1: E.levelClick, to: '#level-card', from: [-170, 150], click: true, delay: 0.3, hold: 0.3 },
+  { t0: E.checkClick - 1.1, t1: E.checkClick, to: CHECK, from: [-240, 150], click: true, xp: 10, hold: 0.9 },
+  { t0: E.taskClick - 1.1, t1: E.taskClick, to: taskCheck('Pflanzen gießen'), from: [-200, 140], click: true, xp: 8, hold: 0.9 },
+  { t0: E.matrixClick - 1.3, t1: E.matrixClick, to: () => ovCell, from: [-160, 170], click: true, xp: 10, hold: 0.9 },
+  { t0: E.dragStart - 1.1, t1: E.dragStart, to: meeting, from: [-200, 170], hold: 0 },
+  { t0: E.dragStart, t1: E.dragEnd, drag: () => { const c = qa('.wk-col'); return [c.length > 1 ? centerOf(c[1]).x - centerOf(c[0]).x : 180, 72]; }, dragEl: (x, y) => appDoc.elementFromPoint(x, y)?.closest('.wk-ev') || meeting(), hold: 0.8 },
+  { t0: E.lockClick - 1.0, t1: E.lockClick, to: '#nav-schedule', from: [200, 150], click: true, delay: 0.4, lock: true, hold: 0.3 },
+  { t0: E.activateClick - 1.0, t1: E.activateClick, to: '[data-action="work-enable"]', from: [140, 160], burst: true, hold: 0.8 },
+  { t0: E.clockClick - 1.0, t1: E.clockClick, to: '.clock-main', from: [-190, 170], click: true, hold: 0.8 },
+  { t0: E.levelClick - 1.0, t1: E.levelClick, to: '#level-card', from: [-170, 150], click: true, delay: 0.3, hold: 0.3 },
+  { t0: E.finLockClick - 1.0, t1: E.finLockClick, to: '#nav-finance', from: [200, 150], click: true, delay: 0.4, lock: true, hold: 0.3 },
+  { t0: E.fileDrop - 1.5, t1: E.fileDrop, to: '[data-action="fin-unlock-import"]', from: [460, 260], carry: true, burst: true, hold: 0.8 },
+  { t0: E.dashDragStart - 1.1, t1: E.dashDragStart, to: dashFrom, from: [180, 160], hold: 0 },
+  { t0: E.dashDragStart, t1: E.dashDragEnd, drag: () => { const a = dashFrom(), b = centerOf(dashItem('week')()); return [b.x - 40 - a.x, b.y - 30 - a.y]; }, dragEl: (x, y) => appDoc.elementFromPoint(x, y)?.closest('.dash-item') || dashItem('month')(), dash: true, hold: 0.9 },
 ];
 
 /* ================= Kamera ================= */
@@ -349,12 +373,12 @@ function updateCursor(t) {
         const [dx, dy] = seg.drag();
         st.from = { x: cur.x, y: cur.y };
         st.to = { x: cur.x + dx, y: cur.y + dy };
-        st.el = appDoc.elementFromPoint(cur.x, cur.y)?.closest('.wk-ev') || meeting();
-        if (st.el) pointer('pointerdown', st.el, cur.x, cur.y);
+        st.el = seg.dragEl(cur.x, cur.y);
+        if (st.el) pointer('pointerdown', seg.dash ? (st.el.querySelector('.card-head h2') || st.el) : st.el, cur.x, cur.y);
       } else {
         const el = typeof seg.to === 'function' ? seg.to() : q(seg.to);
-        const p = el ? centerOf(el) : { x: cur.x, y: cur.y };
-        st.el = el;
+        const p = el ? (el.x !== undefined ? el : centerOf(el)) : { x: cur.x, y: cur.y };
+        st.el = el && el.x === undefined ? el : null;
         st.to = { x: p.x, y: p.y };
         st.from = seg.from ? { x: p.x + seg.from[0], y: p.y + seg.from[1] } : { x: cur.x, y: cur.y };
       }
@@ -362,7 +386,7 @@ function updateCursor(t) {
     const hold = seg.hold ?? 0.45;
     if (t >= seg.t0 - 0.12 && t <= seg.t1 + hold + 0.12) vis = Math.max(vis, Math.min(prog(t, seg.t0 - 0.12, seg.t0), 1 - prog(t, seg.t1 + hold, seg.t1 + hold + 0.12)));
     if (st.started && t < seg.t1) {
-      const k = seg.drag ? easeInOut(prog(t, seg.t0, seg.t1)) : easeInOut(prog(t, seg.t0, seg.t1));
+      const k = easeInOut(prog(t, seg.t0, seg.t1));
       const arc = seg.drag ? 0 : Math.sin(k * Math.PI) * Math.min(60, Math.hypot(st.to.x - st.from.x, st.to.y - st.from.y) * 0.15);
       cur.x = lerp(st.from.x, st.to.x, k);
       cur.y = lerp(st.from.y, st.to.y, k) - arc;
@@ -395,6 +419,7 @@ function fileHtml(t) {
     <i>CSV</i><div>Kontoauszug.csv<small>Sparkasse · 3 Monate</small></div></div>`;
 }
 
+const SPARK_COLS = ['#5ad8ff', '#1e90ff', '#ffc46b', '#4fd6a4'];
 function renderFx(t, camS) {
   let html = '';
   for (const e of fxEvents) {
@@ -414,8 +439,7 @@ function renderFx(t, camS) {
       const n = e.big ? 26 : 14;
       for (let i = 0; i < n; i++) {
         const ang = (i / n) * Math.PI * 2 + r() * 0.5, d = ((e.big ? 90 : 40) + r() * (e.big ? 120 : 50)) / camS * 1.6;
-        const col = ['#5ad8ff', '#9585ff', '#ffc46b', '#4fd6a4'][i % 4];
-        html += `<span class="spark" style="left:${e.x + Math.cos(ang) * d * k}px;top:${e.y + Math.sin(ang) * d * k}px;background:${col};opacity:${1 - k};transform:scale(${(1 - k * 0.6) * 1.5 / camS})"></span>`;
+        html += `<span class="spark" style="left:${e.x + Math.cos(ang) * d * k}px;top:${e.y + Math.sin(ang) * d * k}px;background:${SPARK_COLS[i % 4]};opacity:${1 - k};transform:scale(${(1 - k * 0.6) * 1.5 / camS})"></span>`;
       }
     }
     if (e.kind === 'burst' && a < 0.9) {
@@ -440,30 +464,57 @@ function renderFx(t, camS) {
 /* ================= Hintergrund ================= */
 
 const stars = (() => { const r = rng(7); return Array.from({ length: 110 }, () => ({ x: r() * W, y: r() * H, s: 0.6 + r() * 1.8, sp: 6 + r() * 18, ph: r() * 6.28 })); })();
-function drawBackground(t, pulse) {
+function drawBackground(t) {
   const c = $('bg').getContext('2d');
-  c.fillStyle = '#0b0c0f';
+  c.fillStyle = '#0a0b0f';
   c.fillRect(0, 0, W, H);
   const glow = (x, y, r, col) => {
     const g = c.createRadialGradient(x, y, 0, x, y, r);
     g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
     c.fillStyle = g; c.fillRect(0, 0, W, H);
   };
-  glow(W * 0.78 + Math.sin(t * 0.5) * 160, H * 0.18 + Math.cos(t * 0.37) * 70, 780, `rgba(149,133,255,${0.3 + pulse * 0.15})`);
-  glow(W * 0.16 + Math.cos(t * 0.42) * 140, H * 0.86 + Math.sin(t * 0.5) * 60, 720, `rgba(90,216,255,${0.2 + pulse * 0.1})`);
-  glow(W * 0.5 + Math.sin(t * 0.3) * 320, H * 0.5, 540, 'rgba(255,122,182,0.09)');
+  glow(W * 0.78 + Math.sin(t * 0.5) * 160, H * 0.18 + Math.cos(t * 0.37) * 70, 780, `rgba(${BLUE},0.3)`);
+  glow(W * 0.16 + Math.cos(t * 0.42) * 140, H * 0.86 + Math.sin(t * 0.5) * 60, 720, `rgba(${CYAN},0.18)`);
+  glow(W * 0.5 + Math.sin(t * 0.3) * 320, H * 0.5, 540, `rgba(${DEEP},0.12)`);
   for (const s of stars) {
     const y = (s.y - t * s.sp + H * 20) % H;
-    c.fillStyle = `rgba(220,225,255,${0.25 + 0.35 * (0.5 + 0.5 * Math.sin(t * 1.4 + s.ph))})`;
+    c.fillStyle = `rgba(220,232,255,${0.3 + 0.2 * (0.5 + 0.5 * Math.sin(t * 0.6 + s.ph))})`;
     c.beginPath(); c.arc(s.x, y, s.s, 0, Math.PI * 2); c.fill();
   }
-  c.strokeStyle = 'rgba(255,255,255,0.035)';
+  c.strokeStyle = 'rgba(255,255,255,0.03)';
   c.lineWidth = 1;
   for (let x = 0; x <= W; x += 80) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, H); c.stroke(); }
   for (let y = 0; y <= H; y += 80) { c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke(); }
 }
 
-/* ================= Texte und Überlagerungen ================= */
+/* ================= Intro: Lichtpartikel sammeln sich zum Ring ================= */
+
+const motes = (() => {
+  const r = rng(11);
+  return Array.from({ length: 90 }, (_, i) => {
+    const a = -Math.PI / 2 + (i / 90) * Math.PI * 1.5; // entlang des offenen Rings
+    const ang = r() * Math.PI * 2, dist = 500 + r() * 700;
+    return { tx: Math.cos(a), ty: Math.sin(a), sx: Math.cos(ang) * dist, sy: Math.sin(ang) * dist, d: r() * 0.5, s: 1.5 + r() * 2.5, c: r() < 0.5 ? CYAN : BLUE };
+  });
+})();
+function renderIntroFx(t) {
+  const c = $('introfx').getContext('2d');
+  c.clearRect(0, 0, W, H);
+  const [, t1] = TL.T.logo;
+  if (t > t1) return;
+  const cx = W / 2, cy = H / 2 - 92, R = 61;
+  c.globalCompositeOperation = 'lighter';
+  for (const m of motes) {
+    const k = easeInOut(prog(t, 0.2 + m.d, 1.7 + m.d));
+    const fade = 1 - prog(t, 1.9 + m.d * 0.5, 2.5 + m.d * 0.5);
+    if (fade <= 0) continue;
+    const x = cx + lerp(m.sx, m.tx * R, k), y = cy + lerp(m.sy, m.ty * R, k);
+    const g = c.createRadialGradient(x, y, 0, x, y, m.s * 5);
+    g.addColorStop(0, `rgba(${m.c},${0.9 * fade})`); g.addColorStop(1, `rgba(${m.c},0)`);
+    c.fillStyle = g; c.beginPath(); c.arc(x, y, m.s * 5, 0, Math.PI * 2); c.fill();
+  }
+  c.globalCompositeOperation = 'source-over';
+}
 
 function renderIntro(t) {
   const el = $('intro');
@@ -474,25 +525,30 @@ function renderIntro(t) {
   el.style.opacity = prog(t, 0, 0.6) * (1 - easeInOut(exit));
   el.style.transform = `scale(${1 + easeInOut(exit) * 0.25})`;
   el.style.filter = `blur(${exit * 10}px)`;
-  const k = easeOut(prog(t, t0 + 0.3, t0 + 1.8));
+  const k = easeOut(prog(t, t0 + 1.2, t0 + 2.4));
   $('logo-ring').setAttribute('stroke-dasharray', `${61 * k} 82`);
-  $('logo-dot').setAttribute('r', Math.max(0, 5 * easeOutBack(prog(t, t0 + 1.0, t0 + 1.6))));
-  document.querySelector('.intro-logo').style.transform = `rotate(${(1 - k) * -120}deg) scale(${0.7 + 0.3 * easeOut(prog(t, t0 + 0.2, t0 + 1.6))})`;
+  $('logo-dot').setAttribute('r', Math.max(0, 5 * easeOutBack(prog(t, t0 + 2.0, t0 + 2.6))));
+  document.querySelector('.intro-logo').style.transform = `rotate(${(1 - k) * -120}deg) scale(${0.7 + 0.3 * easeOut(prog(t, t0 + 1.0, t0 + 2.4))})`;
+  // Lichtstrahlen hinter dem Logo
+  $('rays').style.opacity = 0.55 * easeOut(prog(t, t0 + 1.8, t0 + 3.0));
+  $('rays').style.transform = `translate(-50%, -50%) rotate(${t * 12}deg) scale(${0.8 + 0.2 * easeOut(prog(t, t0 + 1.8, t0 + 3.4))})`;
   document.querySelectorAll('#intro-title span').forEach((s, n) => {
-    const kk = prog(t, t0 + 1.0 + n * 0.07, t0 + 1.8 + n * 0.07);
+    const kk = prog(t, t0 + 2.2 + n * 0.09, t0 + 3.0 + n * 0.09);
     s.style.opacity = kk;
-    s.style.transform = `translateY(${(1 - easeOut(kk)) * 50}px)`;
+    s.style.transform = `translateY(${(1 - easeOut(kk)) * 50}px) rotateX(${(1 - easeOut(kk)) * 60}deg)`;
     s.style.filter = `blur(${(1 - kk) * 8}px)`;
   });
   const tag = $('intro-tag');
-  const tk = prog(t, t0 + 2.3, t0 + 3.2);
+  const tk = prog(t, t0 + 3.6, t0 + 4.5);
   tag.style.opacity = tk;
   tag.style.transform = `translateY(${(1 - easeOut(tk)) * 20}px)`;
 }
 
+/* ================= Texte und Überlagerungen ================= */
+
 // Beim Hineinzoomen tritt der Text zurück, in der Gesamtansicht ist er wieder da
 function renderCaptions(t, camS) {
-  const zoomFade = clamp((1.65 - camS) / 0.25);
+  const zoomFade = clamp((1.42 - camS) / 0.2);
   TL.captions.forEach((c, i) => {
     const el = $(`cap-${i}`);
     const show = t >= c.t0 - 0.02 && t <= c.t1 + 0.02;
@@ -513,13 +569,20 @@ function renderCaptions(t, camS) {
       w.style.transform = `translate(${(1 - k) * 30 * dir}px, ${(1 - k) * 24 - outK * 12}px)`;
       w.style.filter = `blur(${(1 - k) * 6 + outK * 6}px)`;
     });
+    // Leuchtende Linie unter der farbigen Zeile zieht sich auf
+    const u = el.querySelector('.uline');
+    if (u) {
+      const uk = easeInOut(prog(t, c.t0 + 0.6, c.t0 + 1.4));
+      u.style.transform = `scaleX(${uk * (1 - outK)})`;
+      u.style.opacity = 1 - outK;
+    }
   });
 }
 
 function renderStamp(t) {
   const el = $('stamp');
   let on = false;
-  for (const [t0, t1] of [[E.activateClick, E.workCut - 0.1], [E.fileDrop, 59.9]]) {
+  for (const [t0, t1] of [[E.activateClick, E.workCut - 0.1], [E.fileDrop, E.finCut - 0.1]]) {
     if (t < t0 || t > t1 + 0.3) continue;
     const k = easeOutBack(prog(t, t0, t0 + 0.4));
     const out = prog(t, t1, t1 + 0.3);
@@ -530,17 +593,53 @@ function renderStamp(t) {
   if (!on) el.style.opacity = 0;
 }
 
-// Ranglisten-Zeilen der Level-Szene nacheinander einblenden
+// Level-Fenster: Rangliste nacheinander einblenden und langsam bis nach unten scrollen
 function renderLevelPanel(t) {
   const t0 = E.levelPanel;
-  if (t < t0 - 0.05 || t > 75) return;
+  if (t < t0 - 0.05 || t > bar(32)) return;
   const hero = q('.modal .lv-hero');
   if (hero) hero.style.transform = `scale(${0.92 + 0.08 * easeOutBack(prog(t, t0, t0 + 0.6))})`;
   qa('.modal .rank-row').forEach((r, i) => {
-    const k = easeOut(prog(t, t0 + 0.3 + i * 0.16, t0 + 0.9 + i * 0.16));
+    const k = easeOut(prog(t, t0 + 0.3 + i * 0.1, t0 + 0.9 + i * 0.1));
     r.style.opacity = k;
     r.style.transform = `translateX(${(1 - k) * 40}px)`;
   });
+  const m = q('.modal');
+  if (m) m.scrollTop = (m.scrollHeight - m.clientHeight) * easeInOut(prog(t, t0 + 2.2, bar(32) - 0.8));
+}
+
+// Jahresansicht: Monate ploppen nacheinander auf
+function renderYear(t) {
+  const t0 = bar(22);
+  if (t < t0 || t > t0 + 2.5) return;
+  qa('.ym').forEach((m, i) => {
+    const k = prog(t, t0 + 0.15 + i * 0.07, t0 + 0.65 + i * 0.07);
+    m.style.opacity = clamp(k * 1.6);
+    m.style.transform = k >= 1 ? '' : `translateY(${(1 - easeOut(k)) * 26}px) scale(${0.9 + 0.1 * easeOutBack(k)})`;
+  });
+}
+
+// Kreis-Überblendung beim Wechsel auf Hell: ein heller Kreis wächst über das Fenster und gibt es wieder frei
+function renderWipe(t) {
+  const el = $('wipe');
+  const a = t - E.themeWipe;
+  if (a < 0 || a > 0.9) { el.style.opacity = 0; return; }
+  const grow = easeInOut(clamp(a / 0.32));
+  const fade = 1 - prog(a, 0.3, 0.85);
+  const r = 40 + grow * 1500;
+  el.style.opacity = fade;
+  el.style.background = `radial-gradient(circle at 50% 48%, rgba(255,255,255,.95) 0, rgba(235,244,255,.92) ${r * 0.82}px, rgba(${BLUE},.35) ${r}px, transparent ${r + 80}px)`;
+}
+
+// Lichtstreifen, der bei jedem Schnitt quer über das Bild zieht
+function renderSweep(t) {
+  const el = $('sweep');
+  const last = CUTS.filter((c) => c <= t).pop();
+  const a = last === undefined ? 9 : t - last;
+  if (a > 0.5) { el.style.opacity = 0; return; }
+  const k = easeOut(a / 0.5);
+  el.style.opacity = 0.75 * (1 - k);
+  el.style.transform = `translateX(${lerp(-70, 120, k)}%) skewX(-18deg)`;
 }
 
 function renderOutro(t) {
@@ -560,6 +659,10 @@ function renderOutro(t) {
   const ck = prog(t, t0 + 2.4, t0 + 3.1);
   cta.style.opacity = ck;
   cta.style.transform = `scale(${0.9 + 0.1 * easeOut(ck)})`;
+  const url = document.querySelector('.outro-url');
+  const uk = prog(t, t0 + 3.2, t0 + 3.9);
+  url.style.opacity = uk;
+  url.style.transform = `translateY(${(1 - easeOut(uk)) * 12}px)`;
 }
 
 const confetti = (() => {
@@ -570,7 +673,7 @@ const confetti = (() => {
       x: left ? 300 + r() * 80 : 1540 + r() * 80, y: 1100,
       vx: (left ? 1 : -1) * (160 + r() * 480), vy: -950 - r() * 400,
       rot: r() * 6.28, vr: (r() - 0.5) * 10,
-      c: ['#5ad8ff', '#9585ff', '#ff7ab6', '#ffc46b', '#4fd6a4'][Math.floor(r() * 5)], w: 8 + r() * 8, h: 5 + r() * 5,
+      c: ['#5ad8ff', '#1e90ff', '#3d62ff', '#ffc46b', '#4fd6a4'][Math.floor(r() * 5)], w: 8 + r() * 8, h: 5 + r() * 5,
     };
   });
 })();
@@ -600,6 +703,7 @@ async function renderAt(t) {
   while (pending.length && t >= pending[0].t) pending.shift().el.click();
   const curVis = updateCursor(t);
   renderLevelPanel(t);
+  renderYear(t);
 
   const cam = cameraAt(t) || { tx: 0, ty: 0, s: 1, rx: 0, ry: 0, rz: 0, o: 1, blur: 0 };
   // Schnitt-Übergang: kurzer, weicher Wisch mit etwas Unschärfe
@@ -610,8 +714,9 @@ async function renderAt(t) {
   const preK = until < 0.12 ? 1 - until / 0.12 : 0;
   const dir = Math.round(lastCut * 10) % 2 ? 1 : -1;
   const tx = cam.tx + dir * whipK * 90 - dir * preK * 40, ty = cam.ty;
+  const s = cam.s;
 
-  const tf = `translate3d(${tx}px, ${ty}px, 0) rotateX(${cam.rx}deg) rotateY(${cam.ry}deg) rotateZ(${cam.rz}deg) scale(${cam.s})`;
+  const tf = `translate3d(${tx}px, ${ty}px, 0) rotateX(${cam.rx}deg) rotateY(${cam.ry}deg) rotateZ(${cam.rz}deg) scale(${s})`;
   $('frame').style.transform = tf;
   $('frame').style.opacity = cam.o * (1 - whipK * 0.35) * (1 - preK * 0.3);
   const blur = cam.blur + whipK * 6 + preK * 4;
@@ -629,13 +734,16 @@ async function renderAt(t) {
   const hit = [E.activateClick, E.fileDrop, E.levelPanel].reduce((m, h) => Math.max(m, t >= h ? 0.22 * Math.exp(-(t - h) * 8) : 0), 0);
   $('flash').style.opacity = hit;
 
-  drawBackground(t, 0);
+  drawBackground(t);
+  renderIntroFx(t);
   renderIntro(t);
   renderCaptions(t, cam.s);
   renderStamp(t);
   renderConfetti(t);
+  renderWipe(t);
+  renderSweep(t);
   renderOutro(t);
-  $('fade').style.opacity = Math.max(1 - prog(t, 0, 0.8), prog(t, TL.duration - 1.5, TL.duration));
+  $('fade').style.opacity = Math.max(1 - prog(t, 0, 0.8), prog(t, TL.duration - 1.6, TL.duration));
   await frames(2);
   return true;
 }

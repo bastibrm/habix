@@ -377,7 +377,7 @@ function openFinanceUnlock() {
       <div class="unlock-icon">${icon('wallet')}<span class="unlock-lock">${icon('lock')}</span></div>
       <div class="eyebrow">Bereich Finanzen</div>
       <h2 class="panel-title">Behalte dein Geld im Blick</h2>
-      <p>Lade einen Kontoauszug hoch, und Tageswerk ordnet deine Ausgaben, erkennt Abos und hilft dir beim Planen.</p>
+      <p>Lade einen Kontoauszug hoch, und Habix ordnet deine Ausgaben, erkennt Abos und hilft dir beim Planen.</p>
       <ul class="unlock-list">
         <li>${icon('file-spreadsheet')}<div><b>Kontoauszug als CSV</b><span>Im Online-Banking unter Umsätze bei „Export“ oder „Download“ als CSV speichern. Klappt bei Sparkasse, Volksbank, DKB, ING, Commerzbank, comdirect, N26 und vielen mehr.</span></div></li>
         <li>${icon('shield')}<div><b>Ohne Bank-Login</b><span>Du gibst nirgends Zugangsdaten ein. Die Datei bleibt auf deinem PC.</span></div></li>

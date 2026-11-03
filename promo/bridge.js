@@ -35,6 +35,30 @@ window.__promo = {
     t1.prio = true;
     addTask('Geschenk besorgen', todayKey());
     addTask('Fahrrad zur Werkstatt', todayKey());
+    // Aufgaben mit Teilschritten und Wiederholung für die Aufgaben-Szene
+    const t2 = addTask('Umzugskartons packen', todayKey());
+    t2.steps = [{ id: uid(), title: 'Küche', done: true }, { id: uid(), title: 'Bücher', done: true }, { id: uid(), title: 'Kleidung', done: false }, { id: uid(), title: 'Bad', done: false }];
+    t2.prio = true;
+    const t3 = addTask('Pflanzen gießen', todayKey());
+    t3.repeat = 'week';
+    const t4 = addTask('Wocheneinkauf', addDays(todayKey(), 1));
+    t4.repeat = 'week';
+    t4.steps = [{ id: uid(), title: 'Liste schreiben', done: true }, { id: uid(), title: 'Markt', done: false }];
+    // Über das Jahr verteilte Termine für die Jahresansicht
+    const y = new Date().getFullYear();
+    const pal = ['#1e90ff', '#ff7ab6', '#57e3b4', '#ffc46b', '#5ee0ff', '#ff8f6b'];
+    const names = ['Arzttermin', 'Konzert', 'Urlaub planen', 'Geburtstag Tim', 'Elternabend', 'Kino', 'Friseur', 'Steuerberater', 'Hochzeit Anna', 'Laufen im Park'];
+    let n = 0;
+    for (let m = 0; m < 12; m++) {
+      const per = 3 + ((m * 7) % 5);
+      for (let i = 0; i < per; i++) {
+        const d = 2 + ((i * 9 + m * 5) % 26);
+        const k = `${y}-${pad(m + 1)}-${pad(d)}`;
+        const h = 9 + ((i * 3 + m) % 9);
+        const st = parseKey(k); st.setHours(h, 0, 0, 0);
+        state.calEvents.push({ id: `local:y${n++}`, cal: 'local', title: names[(i + m) % names.length], allDay: false, start: st.getTime(), end: st.getTime() + 3600000, color: pal[(i + m) % pal.length], note: '', location: '' });
+      }
+    }
 
     save();
     renderClock();
@@ -48,7 +72,12 @@ window.__promo = {
     ui.month = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
     this.go('habits');
   },
-  calMode(mode) { ui.calMode = mode; ui.view = 'x'; go('calendar'); },
+  calMode(mode) {
+    ui.calMode = mode;
+    if (mode === 'year') { ui.calYear = new Date().getFullYear(); ui.calDay = todayKey(); }
+    closeModal(); ui.view = 'x'; go('calendar');
+  },
+  dashEdit(on) { ui.dashEdit = on; closeModal(); ui.view = 'x'; go('today'); },
   theme(mode) { markTheme(mode); },
   // Wie „Bereich aktivieren“, aber ohne Zeitverzögerung
   enableWork() {

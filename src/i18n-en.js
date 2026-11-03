@@ -7,7 +7,7 @@ const I18N_EN = {
   // Seitenleiste und allgemein
   'Heute': 'Today', 'Planen': 'Plan', 'Kalender': 'Calendar', 'Aufgaben': 'Tasks', 'Gewohnheiten': 'Habits', 'Übersicht': 'Overview',
   'Statistiken': 'Statistics', 'Arbeit': 'Work', 'Stundenplan': 'Schedule', 'Einstellungen': 'Settings', 'Hauptnavigation': 'Main navigation',
-  'gesperrt': 'locked', 'Gewohnheiten heute': 'Habits today', 'Nichts geplant': 'Nothing planned', 'Tageswerk': 'Tageswerk',
+  'gesperrt': 'locked', 'Gewohnheiten heute': 'Habits today', 'Nichts geplant': 'Nothing planned', 'Habix': 'Habix',
   'Abbrechen': 'Cancel', 'Speichern': 'Save', 'Schließen': 'Close', 'Löschen': 'Delete', 'Nein': 'No', 'Weiter': 'Next', 'Zurück': 'Back',
   'Bearbeiten': 'Edit', 'Hinzufügen': 'Add', 'Entfernen': 'Remove', 'optional': 'optional', 'oder': 'or', 'von': 'of', 'vorher': 'before',
   'Gespeichert': 'Saved', 'Gelöscht': 'Deleted', 'Beispiel': 'Example', 'Ansicht': 'View', 'Zeitraum': 'Time range', 'Datum wählen': 'Choose date',
@@ -34,9 +34,9 @@ const I18N_EN = {
   'Termine heute': "Today's events", 'Zum Kalender': 'Open calendar',
 
   // Willkommen
-  'Kleine Schritte.': 'Small steps.', 'Jeden Tag.': 'Every day.', 'Willkommen bei Tageswerk': 'Welcome to Tageswerk',
-  'Tageswerk hilft dir, Gewohnheiten aufzubauen und deine Arbeitszeit im Blick zu behalten. Du hakst ab, was du geschafft hast, planst deine Woche in halben Stunden und siehst schwarz auf weiß, wo du besser wirst.':
-    'Tageswerk helps you build habits and keep track of your working hours. Tick off what you did, plan your week in half hours and see in black and white where you are improving.',
+  'Kleine Schritte.': 'Small steps.', 'Jeden Tag.': 'Every day.', 'Willkommen bei Habix': 'Welcome to Habix',
+  'Habix hilft dir, Gewohnheiten aufzubauen und deine Arbeitszeit im Blick zu behalten. Du hakst ab, was du geschafft hast, planst deine Woche in halben Stunden und siehst schwarz auf weiß, wo du besser wirst.':
+    'Habix helps you build habits and keep track of your working hours. Tick off what you did, plan your week in half hours and see in black and white where you are improving.',
   'Erste Gewohnheit anlegen': 'Create your first habit', 'Mit Beispieldaten ausprobieren': 'Try it with sample data', 'Oder mit einem Klick starten:': 'Or start with one click:',
   'So sieht Fortschritt aus': 'This is what progress looks like', 'Beispiel einer guten Woche': 'Example of a good week', 'heute geschafft': 'done today',
   'Heute abhaken': 'Tick off today', 'Jeden Tag siehst du, was ansteht. Ein Klick, und die Gewohnheit ist erledigt. Deine Serie wächst mit.': 'Every day you see what is due. One click and the habit is done. Your streak grows with it.',
@@ -163,7 +163,7 @@ const I18N_EN = {
   'Start und Taskleiste': 'Startup and taskbar', 'Stempeln über das Symbol unten rechts, ohne das Fenster zu öffnen': 'Clock in from the icon at the bottom right without opening the window',
   'Mit Windows starten': 'Start with Windows', 'Startet unsichtbar im Hintergrund, das Symbol erscheint unten rechts': 'Starts hidden in the background, the icon appears at the bottom right',
   'Beim Schließen weiterlaufen': 'Keep running when closed', 'Das X versteckt die App nur. Beenden geht über das Symbol unten rechts.': 'The X only hides the app. Quit via the icon at the bottom right.',
-  'Ein Klick auf das Symbol unten rechts öffnet Tageswerk, ein Rechtsklick zeigt Einstempeln, Pause und Ausstempeln.': 'Clicking the icon at the bottom right opens Tageswerk, right-clicking shows clock in, break and clock out.',
+  'Ein Klick auf das Symbol unten rechts öffnet Habix, ein Rechtsklick zeigt Einstempeln, Pause und Ausstempeln.': 'Clicking the icon at the bottom right opens Habix, right-clicking shows clock in, break and clock out.',
   'Zeitzone': 'Time zone', 'Bestimmt, wann ein Tag beginnt, und gilt für Stundenplan und Erinnerungen': 'Decides when a day starts, and applies to the schedule and reminders',
   'Automatisch': 'Automatic', 'Die neue Zeitzone gilt nach einem Neustart der App.': 'The new time zone applies after restarting the app.', 'Jetzt neu starten': 'Restart now',
   'Deine Stempelzeiten bleiben auf die Minute genau erhalten. Nur die Anzeige richtet sich nach der Zeitzone.': 'Your time entries stay accurate to the minute. Only the display follows the time zone.',
@@ -171,7 +171,7 @@ const I18N_EN = {
   'Wiederherstellen': 'Restore', 'Automatische Sicherungen': 'Automatic backups', 'Ja, laden': 'Yes, load',
   'Für einen neuen PC: hier ein Backup speichern, die Datei rüberkopieren und dort mit „Wiederherstellen“ laden.': 'For a new PC: save a backup here, copy the file over and load it there with “Restore”.',
   'Backup gespeichert': 'Backup saved', 'Backup geladen': 'Backup loaded', 'Das Backup konnte nicht gespeichert werden.': 'The backup could not be saved.',
-  'Diese Datei ist kein Tageswerk-Backup.': 'This file is not a Tageswerk backup.', 'Die Datei konnte nicht gelesen werden.': 'The file could not be read.',
+  'Diese Datei ist kein Habix-Backup.': 'This file is not a Habix backup.', 'Die Datei konnte nicht gelesen werden.': 'The file could not be read.',
   'Updates': 'Updates', 'Neue Versionen kommen automatisch': 'New versions arrive automatically', 'Nach Updates suchen': 'Check for updates',
   'Automatische Updates sind in dieser Version noch nicht eingerichtet.': 'Automatic updates are not set up in this version yet.',
   'Automatische Updates sind aktiv.': 'Automatic updates are on.', 'Du hast die neueste Version.': 'You have the latest version.', 'Suche nach Updates …': 'Checking for updates …',
@@ -180,12 +180,12 @@ const I18N_EN = {
   'Das ist gerade die Entwickler-Version. Automatische Updates funktionieren in der installierten App: Sie prüft beim Start und alle 6 Stunden, lädt neue Versionen im Hintergrund und installiert sie mit einem Klick.': 'This is the developer version. Automatic updates work in the installed app: it checks at startup and every 6 hours, downloads new versions in the background and installs them with one click.',
   'Daten': 'Data', 'Alles bleibt lokal auf diesem PC.': 'Everything stays local on this PC.', 'Speicherort öffnen': 'Open storage location',
   'Alles zurücksetzen': 'Reset everything', 'Ja, alles löschen': 'Yes, delete everything', 'Wirklich alles löschen? Gewohnheiten, Stundenplan, Stempelzeiten und Tagebuch.': 'Really delete everything? Habits, schedule, time entries and journal.',
-  'Alles gelöscht': 'Everything deleted', 'So sehen deine Erinnerungen aus': 'This is what your reminders look like', 'Tageswerk meldet sich hier, auch wenn das Fenster zu ist.': 'Tageswerk notifies you here, even when the window is closed.',
+  'Alles gelöscht': 'Everything deleted', 'So sehen deine Erinnerungen aus': 'This is what your reminders look like', 'Habix meldet sich hier, auch wenn das Fenster zu ist.': 'Habix notifies you here, even when the window is closed.',
   'Speichern hat nicht geklappt. Bitte die App neu starten.': 'Saving failed. Please restart the app.',
 
   // Einführung
   'Schön, dass du da bist.': 'Great to have you here.', 'Überspringen': 'Skip',
-  'Tageswerk hilft dir, Gewohnheiten aufzubauen, Aufgaben im Blick zu behalten und deine Woche zu planen. Alles bleibt auf deinem PC.': 'Tageswerk helps you build habits, keep track of tasks and plan your week. Everything stays on your PC.',
+  'Habix hilft dir, Gewohnheiten aufzubauen, Aufgaben im Blick zu behalten und deine Woche zu planen. Alles bleibt auf deinem PC.': 'Habix helps you build habits, keep track of tasks and plan your week. Everything stays on your PC.',
   'Jeden Tag ein Stück weiter': 'A little further every day', 'Gewohnheiten abhaken oder Mengen eintragen, dazu deine Aufgaben und Termine des Tages': "Tick off habits or enter amounts, plus your tasks and events of the day",
   'Einmalige Dinge mit Fälligkeitsdatum, zum Beispiel „Steuer abgeben“': 'One-off things with a due date, for example “File taxes”',
   'Sieh, wo du besser wirst und wo du nachlässt, mit Abzeichen für lange Serien': 'See where you improve and where you slip, with badges for long streaks',
@@ -195,7 +195,7 @@ const I18N_EN = {
   "Los geht's": "Let's go", 'Womit möchtest du anfangen?': 'How would you like to start?', 'Zum Beispiel jeden Tag Wasser trinken': 'For example, drink water every day',
   'Sieh dir alles mit ausgefüllten Daten an': 'See everything with filled-in data', 'Selbst umsehen': 'Look around myself',
   'Alle Bereiche findest du links in der Seitenleiste': 'You can find all areas in the sidebar on the left',
-  'Level und Ränge': 'Levels and ranks', 'Für Gewohnheiten, Aufgaben und deine Stimmung sammelst du XP und steigst vom Lehrling zur Legende auf': 'You earn XP for habits, tasks and your mood and rise from Apprentice to Legend',
+  'Level und Ränge': 'Levels and ranks', 'Für Gewohnheiten, Aufgaben und deine Stimmung sammelst du XP und steigst vom Rookie bis zum GOAT auf': 'You earn XP for habits, tasks and your mood and rise from Rookie to GOAT',
   'Kontoauszug als CSV hochladen: Ausgaben nach Kategorien, Abos und Budgets. Auch diesen Bereich schaltest du erst frei.': 'Upload a bank statement as CSV: spending by category, subscriptions and budgets. You unlock this area first, too.',
   // Level und Ränge
   'Lehrling': 'Apprentice', 'Geselle': 'Journeyman', 'Handwerker': 'Craftsman', 'Meister': 'Master', 'Werkmeister': 'Foreman',
@@ -210,7 +210,7 @@ const I18N_EN = {
   'Du planst deine Tage, statt dich von ihnen treiben zu lassen.': 'You plan your days instead of being driven by them.',
   'Aus vielen kleinen Tagen ist etwas Großes geworden.': 'Many small days have turned into something big.',
   'Nur wenige halten so lange durch.': 'Only a few keep going this long.',
-  'Tageswerk ist für dich kein Programm mehr, sondern ein Lebensstil.': 'For you, Tageswerk is no longer an app but a way of life.',
+  'Habix ist für dich kein Programm mehr, sondern ein Lebensstil.': 'For you, Habix is no longer an app but a way of life.',
 
   // Finanzen
   'Geld': 'Money', 'Finanzen': 'Finances', 'Neuester Monat': 'Latest month', 'Abo hinzufügen': 'Add subscription', 'Kontoauszug importieren': 'Import bank statement',
@@ -223,7 +223,7 @@ const I18N_EN = {
   'Wiederkehrende Abbuchungen werden hier automatisch vorgeschlagen, sobald sie mindestens zweimal im Kontoauszug stehen.': 'Recurring payments are suggested here automatically once they appear at least twice in your statement.',
   'Buchungen': 'Transactions', 'Suchen, z. B. REWE': 'Search, e.g. Tesco', 'Alle Kategorien': 'All categories', 'Kategorie ändern': 'Change category',
   'Keine Buchungen gefunden.': 'No transactions found.', 'Bereich Finanzen': 'Finances area', 'Behalte dein Geld im Blick': 'Keep an eye on your money',
-  'Lade einen Kontoauszug hoch, und Tageswerk ordnet deine Ausgaben, erkennt Abos und hilft dir beim Planen.': 'Upload a bank statement and Tageswerk sorts your spending, finds subscriptions and helps you plan.',
+  'Lade einen Kontoauszug hoch, und Habix ordnet deine Ausgaben, erkennt Abos und hilft dir beim Planen.': 'Upload a bank statement and Habix sorts your spending, finds subscriptions and helps you plan.',
   'Kontoauszug als CSV': 'Bank statement as CSV',
   'Im Online-Banking unter Umsätze bei „Export“ oder „Download“ als CSV speichern. Klappt bei Sparkasse, Volksbank, DKB, ING, Commerzbank, comdirect, N26 und vielen mehr.': 'In online banking, save your transactions as CSV via “Export” or “Download”. Works with Sparkasse, Volksbank, DKB, ING, Commerzbank, comdirect, N26 and many more.',
   'Ohne Bank-Login': 'No bank login', 'Du gibst nirgends Zugangsdaten ein. Die Datei bleibt auf deinem PC.': 'You never enter login details. The file stays on your PC.',
@@ -278,7 +278,7 @@ const I18N_EN_PATTERNS = [
   ['„*“ angelegt', '“*” created'], ['„*“ abonniert, # Termine', '“*” subscribed, # events'], ['# Termine aus „*“ importiert', '# events imported from “*”'],
   ['Aufgabe für * angelegt', 'Task created for *'], ['Heute, #', 'Today, #'], ['Morgen, #', 'Tomorrow, #'], ['Gestern, #', 'Yesterday, #'],
   ['Wochenrückblick', 'Weekly review'], ['Lally u. a., University College London, #', 'Lally et al., University College London, #'],
-  ['* · Willkommen bei Tageswerk', '* · Welcome to Tageswerk'], ['z. B. # Minuten lesen', 'e.g. Read for # minutes'],
+  ['* · Willkommen bei Habix', '* · Welcome to Habix'], ['z. B. # Minuten lesen', 'e.g. Read for # minutes'],
   ['# Minuten lesen', 'Read for # minutes'], ['# Minuten meditieren', 'Meditate for # minutes'], ['Vor # Uhr schlafen', 'Sleep before #'], ['Kein Handy nach # Uhr', 'No phone after #'],
   ['/ # *', '/ # *'],
   ['+#, wichtig +#', '+#, important +#'], ['+# bis +#', '+# to +#'],

@@ -1,6 +1,6 @@
 'use strict';
 
-/* Speicherort der Daten. Wer Tageswerk auf zwei PCs nutzt, legt die Datei in einen Ordner, den OneDrive, Dropbox oder
+/* Speicherort der Daten. Wer Habix auf zwei PCs nutzt, legt die Datei in einen Ordner, den OneDrive, Dropbox oder
    Google Drive abgleicht, und wählt auf beiden PCs denselben Ordner. Speichert der andere PC, lädt diese App die Daten neu. */
 
 async function refreshLocation() {
@@ -29,7 +29,7 @@ function storageSetting() {
     ${loc.missing ? `<div class="error">${dt(`Der gewählte Ordner ist gerade nicht erreichbar (${esc(loc.wanted)}). Bis er wieder da ist, speichert die App im Standard-Ordner.`, `The chosen folder is not reachable right now (${esc(loc.wanted)}). Until it is back, the app saves to the default folder.`)}</div>` : ''}
     ${p ? `
     <div class="confirm-box">
-      <span>${dt('In diesem Ordner liegen schon Tageswerk-Daten, z. B. von deinem anderen PC. Welche willst du behalten?', 'This folder already contains Tageswerk data, e.g. from your other PC. Which do you want to keep?')}</span>
+      <span>${dt('In diesem Ordner liegen schon Habix-Daten, z. B. von deinem anderen PC. Welche willst du behalten?', 'This folder already contains Habix data, e.g. from your other PC. Which do you want to keep?')}</span>
       <div class="btn-row">
         <button class="btn small primary" data-action="loc-use">${icon('download')}${dt('Daten aus dem Ordner laden', 'Load data from the folder')}</button>
         <button class="btn small danger" data-action="loc-take">${icon('upload')}${dt('Meine Daten dorthin, die anderen ersetzen', 'Move my data there, replace the other')}</button>

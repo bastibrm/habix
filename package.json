@@ -1,7 +1,7 @@
 {
-  "name": "tageswerk",
-  "productName": "Tageswerk",
-  "version": "1.0.3",
+  "name": "habix",
+  "productName": "Habix",
+  "version": "1.1.0",
   "description": "Gewohnheiten, Stundenplan und Arbeitszeit für den Desktop",
   "main": "main.js",
   "private": true,
@@ -13,7 +13,7 @@
   },
   "build": {
     "appId": "de.tageswerk.app",
-    "productName": "Tageswerk",
+    "productName": "Habix",
     "copyright": "© 2026",
     "files": [
       "main.js",
@@ -33,14 +33,14 @@
       "perMachine": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Tageswerk",
-      "artifactName": "Tageswerk-Setup-${version}.${ext}"
+      "shortcutName": "Habix",
+      "artifactName": "Habix-Setup-${version}.${ext}"
     },
     "publish": [
       {
         "provider": "github",
         "owner": "bastibrm",
-        "repo": "tageswerk",
+        "repo": "habix",
         "releaseType": "release"
       }
     ]

@@ -4,8 +4,8 @@
   --fg: #eef0f4;
   --muted: #a2a6b2;
   --cyan: #5ad8ff;
-  --violet: #9585ff;
-  --pink: #ff7ab6;
+  --violet: #1e90ff;
+  --pink: #3d62ff;
   --display: "Bricolage Grotesque", "Segoe UI", sans-serif;
   --body: "Figtree", "Segoe UI", sans-serif;
   color-scheme: dark;
@@ -25,7 +25,7 @@ html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; backgro
   overflow: hidden; background: #141517;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, .09), 0 60px 120px -30px rgba(0, 0, 0, .8);
 }
-.frame-glow { background: radial-gradient(closest-side, rgba(149, 133, 255, .55), rgba(90, 216, 255, .25) 60%, transparent); filter: blur(60px); }
+.frame-glow { background: radial-gradient(closest-side, rgba(30, 144, 255, .55), rgba(90, 216, 255, .25) 60%, transparent); filter: blur(60px); }
 #app { position: absolute; inset: 0; width: 1600px; height: 960px; border: 0; display: block; background: #141517; }
 .winctl { position: absolute; top: 0; right: 0; height: 44px; display: flex; z-index: 3; color: #c9cace; font-size: 13px; }
 .winctl span { width: 46px; display: grid; place-items: center; }
@@ -33,7 +33,7 @@ html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; backgro
 #fx-frame { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
 .cursor { position: absolute; left: 0; top: 0; z-index: 6; width: 28px; height: 32px; margin: -2px 0 0 -3px; transform-origin: 3px 2px; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .55)); opacity: 0; }
 
-.ripple { position: absolute; width: 70px; height: 70px; margin: -35px 0 0 -35px; border-radius: 50%; border: 3px solid rgba(149, 133, 255, .9); box-shadow: 0 0 24px rgba(149, 133, 255, .6); }
+.ripple { position: absolute; width: 70px; height: 70px; margin: -35px 0 0 -35px; border-radius: 50%; border: 3px solid rgba(30, 144, 255, .9); box-shadow: 0 0 24px rgba(30, 144, 255, .6); }
 .xp-float { position: absolute; transform: translate(-50%, -50%); font: 600 26px "JetBrains Mono", monospace; color: #ffc46b; text-shadow: 0 4px 16px rgba(0, 0, 0, .6), 0 0 18px rgba(255, 196, 107, .5); white-space: nowrap; }
 .spark { position: absolute; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; }
 
@@ -44,7 +44,7 @@ html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; backgro
 .cap.right { right: 100px; text-align: right; align-items: flex-end; }
 .cap.top { left: 50%; top: 34px; width: 1400px; transform: translateX(-50%); align-items: center; text-align: center; gap: 10px; }
 .cap-eyebrow { display: inline-flex; align-self: flex-start; padding: 9px 18px; border-radius: 99px; font: 600 19px var(--body); letter-spacing: .14em; text-transform: uppercase; color: #fff;
-  background: linear-gradient(120deg, rgba(90, 216, 255, .22), rgba(149, 133, 255, .32)); box-shadow: inset 0 0 0 1px rgba(149, 133, 255, .55); }
+  background: linear-gradient(120deg, rgba(90, 216, 255, .22), rgba(30, 144, 255, .32)); box-shadow: inset 0 0 0 1px rgba(30, 144, 255, .55); }
 .cap.right .cap-eyebrow { align-self: flex-end; }
 .cap.top .cap-eyebrow { align-self: center; }
 .cap-title { font: 800 82px/1.02 var(--display); letter-spacing: -0.035em; }
@@ -57,7 +57,7 @@ html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; backgro
 
 /* Intro */
 #intro { position: absolute; inset: 0; z-index: 25; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; }
-.intro-logo { width: 150px; height: 150px; filter: drop-shadow(0 0 40px rgba(149, 133, 255, .6)); }
+.intro-logo { width: 150px; height: 150px; filter: drop-shadow(0 0 40px rgba(30, 144, 255, .6)); }
 .intro-title { font: 800 150px/1 var(--display); letter-spacing: -0.04em; perspective: 900px; display: flex; }
 .intro-title span { display: inline-block; transform-origin: 50% 100%; }
 .intro-tag { font: 600 44px var(--body); color: var(--muted); }
@@ -65,13 +65,13 @@ html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; backgro
 
 /* Outro */
 #outro { position: absolute; inset: 0; z-index: 25; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; opacity: 0; }
-.outro-logo { width: 120px; height: 120px; filter: drop-shadow(0 0 40px rgba(149, 133, 255, .6)); }
+.outro-logo { width: 120px; height: 120px; filter: drop-shadow(0 0 40px rgba(30, 144, 255, .6)); }
 .outro-title { font: 800 128px/1 var(--display); letter-spacing: -0.04em; }
 .outro-features { font: 600 30px var(--body); color: var(--muted); display: flex; gap: 18px; }
 .outro-features span { display: inline-block; }
 .outro-features i { font-style: normal; color: var(--violet); }
 .outro-cta { display: flex; gap: 16px; margin-top: 10px; }
-.pill { padding: 16px 30px; border-radius: 99px; font: 700 30px var(--body); color: #0c0d10; background: linear-gradient(120deg, var(--cyan), var(--violet)); box-shadow: 0 18px 50px -14px rgba(149, 133, 255, .9); }
+.pill { padding: 16px 30px; border-radius: 99px; font: 700 30px var(--body); color: #0c0d10; background: linear-gradient(120deg, var(--cyan), var(--violet)); box-shadow: 0 18px 50px -14px rgba(30, 144, 255, .9); }
 .pill.ghost { color: var(--fg); background: rgba(255, 255, 255, .06); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .18); }
 
 #vignette { position: absolute; inset: 0; z-index: 40; pointer-events: none; background: radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0, 0, 0, .55) 100%); }
@@ -89,7 +89,7 @@ html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; backgro
 .cap.tag { left: 50%; top: auto; bottom: 70px; width: auto; transform: translateX(-50%); align-items: center; }
 .cap.tag::before { display: none; }
 .cap.tag .cap-title { font: 700 40px/1 var(--body); letter-spacing: 0; padding: 18px 34px; border-radius: 99px; color: #fff;
-  background: rgba(12, 13, 16, .78); box-shadow: inset 0 0 0 1.5px rgba(149, 133, 255, .6), 0 20px 50px -10px rgba(0, 0, 0, .7); }
+  background: rgba(12, 13, 16, .78); box-shadow: inset 0 0 0 1.5px rgba(30, 144, 255, .6), 0 20px 50px -10px rgba(0, 0, 0, .7); }
 #slam { position: absolute; inset: 0; z-index: 26; display: grid; place-items: center; pointer-events: none; }
 #slam-word { font: 800 190px/1 var(--display); letter-spacing: -0.045em; white-space: nowrap; text-shadow: 0 20px 80px rgba(0, 0, 0, .6); }
 #slam-word.grad { padding: 0 20px 18px; }
@@ -102,3 +102,20 @@ html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; backgro
   font: 600 22px var(--body); color: #eef0f4; background: #1d1f24; box-shadow: 0 0 0 1.5px rgba(79, 214, 164, .7), 0 26px 50px -12px rgba(0, 0, 0, .8); }
 .file i { width: 40px; height: 46px; border-radius: 6px; display: grid; place-items: center; font: 700 12px "JetBrains Mono", monospace; font-style: normal; color: #0c0d10; background: #4fd6a4; }
 .file small { display: block; font: 400 16px var(--body); color: #a2a6b2; }
+
+/* ===== Version 4: Habix in Blau, neue Effekte ===== */
+#introfx { position: absolute; inset: 0; z-index: 24; pointer-events: none; }
+#rays { position: absolute; left: 50%; top: calc(50% - 92px); width: 1400px; height: 1400px; z-index: -1; opacity: 0; pointer-events: none;
+  background: repeating-conic-gradient(from 0deg, rgba(30, 144, 255, .16) 0deg 6deg, transparent 6deg 18deg);
+  -webkit-mask: radial-gradient(closest-side, #000 0, rgba(0, 0, 0, .6) 30%, transparent 75%); mask: radial-gradient(closest-side, #000 0, rgba(0, 0, 0, .6) 30%, transparent 75%); }
+#intro { overflow: visible; }
+#wipe { position: absolute; inset: 0; z-index: 18; pointer-events: none; opacity: 0; mix-blend-mode: screen; }
+#sweep { position: absolute; top: -10%; bottom: -10%; left: 0; width: 34%; z-index: 21; pointer-events: none; opacity: 0;
+  background: linear-gradient(90deg, transparent, rgba(90, 216, 255, .10) 35%, rgba(255, 255, 255, .22) 50%, rgba(30, 144, 255, .10) 65%, transparent); mix-blend-mode: screen; filter: blur(6px); }
+.cap-line.grad { position: relative; display: inline-block; }
+.uline { position: absolute; left: 0; right: 14px; bottom: -4px; height: 5px; border-radius: 5px; transform-origin: 0 50%; transform: scaleX(0);
+  background: linear-gradient(90deg, #5ad8ff, #1e90ff 60%, #3d62ff); box-shadow: 0 0 22px rgba(30, 144, 255, .8); }
+.cap.right .uline { transform-origin: 100% 50%; left: 14px; right: 0; }
+.cap.top .uline { transform-origin: 50% 50%; }
+.outro-url { font: 500 26px "JetBrains Mono", monospace; color: #9fd0ff; letter-spacing: .02em; opacity: 0; }
+.pill { color: #fff; }

@@ -1,7 +1,23 @@
 'use strict';
 
-/* Aufgaben: einmalige To-dos mit optionalem Fälligkeitstag und Uhrzeit.
-   state.tasks = [{ id, title, due: 'YYYY-MM-DD' | null, time: 'HH:MM' | null, note, prio, done, doneAt, createdAt }] */
+/* Aufgaben: To-dos mit optionalem Fälligkeitstag und Uhrzeit, Teilschritten und Wiederholung.
+   state.tasks = [{ id, title, due: 'YYYY-MM-DD' | null, time: 'HH:MM' | null, note, prio, done, doneAt, createdAt,
+                    steps?: [{ id, title, done }], repeat?: 'day' | 'weekdays' | 'week' | 'month', nextId? }]
+   Eine wiederkehrende Aufgabe legt beim Abhaken die nächste an (nextId merkt sie, damit Zurücknehmen sie wieder entfernt). */
+
+const REPEAT = { day: ['Täglich', 'Daily'], weekdays: ['Werktags', 'Weekdays'], week: ['Wöchentlich', 'Weekly'], month: ['Monatlich', 'Monthly'] };
+
+function nextTaskDue(due, rep) {
+  if (rep === 'day') return addDays(due, 1);
+  if (rep === 'week') return addDays(due, 7);
+  if (rep === 'weekdays') { let k = addDays(due, 1); while (wdOf(k) > 4) k = addDays(k, 1); return k; }
+  // Monatlich: gleicher Tag im nächsten Monat, am Monatsende der letzte Tag
+  const d = parseKey(due), day = d.getDate();
+  const n = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+  n.setDate(Math.min(day, new Date(n.getFullYear(), n.getMonth() + 1, 0).getDate()));
+  return keyOf(n);
+}
+const stepsOf = (t) => t.steps || [];
 
 const taskSort = (a, b) => (a.due || '9999-99-99').localeCompare(b.due || '9999-99-99')
   || (a.time || '99:99').localeCompare(b.time || '99:99') || Number(b.prio) - Number(a.prio) || a.createdAt - b.createdAt;
@@ -40,16 +56,57 @@ function taskGroups(list) {
 
 function taskRow(t) {
   const overdue = !t.done && t.due && t.due < todayKey();
+  const steps = stepsOf(t), stepsDone = steps.filter((s) => s.done).length;
+  const meta = [
+    t.due ? `<span class="${overdue ? 'late' : ''}">${icon('calendar')}${esc(dueLabel(t))}</span>` : '',
+    t.repeat ? `<span>${icon('repeat')}${dt(...REPEAT[t.repeat])}</span>` : '',
+    steps.length ? `<span class="${stepsDone === steps.length ? 'ok' : ''}">${icon('list-checks')}${stepsDone}/${steps.length}</span>` : '',
+    t.note ? `<span>${icon('align-left')}Notiz</span>` : '',
+  ].join('');
   return `
-  <div class="task-row ${t.done ? 'done' : ''} ${overdue ? 'overdue' : ''} ${t.prio ? 'prio' : ''}">
+  <div class="task-row ${t.done ? 'done' : ''} ${overdue ? 'overdue' : ''} ${t.prio ? 'prio' : ''}" data-q="${esc(`${t.title} ${t.note || ''} ${steps.map((s) => s.title).join(' ')}`.toLowerCase())}">
     <button class="task-check ${t.done ? 'on' : ''}" data-action="task-toggle" data-id="${t.id}" aria-pressed="${t.done}" aria-label="${esc(t.title)} erledigt">${icon('check')}</button>
     <button class="task-main" data-action="task-edit" data-id="${t.id}">
       <span class="task-title">${esc(t.title)}</span>
-      ${t.due || t.note ? `<span class="task-meta">${t.due ? `<span class="${overdue ? 'late' : ''}">${icon('calendar')}${esc(dueLabel(t))}</span>` : ''}${t.note ? `<span>${icon('align-left')}Notiz</span>` : ''}</span>` : ''}
+      ${meta ? `<span class="task-meta">${meta}</span>` : ''}
+      ${steps.length && !t.done ? `<span class="task-steps-bar"><i style="width:${(stepsDone / steps.length) * 100}%"></i></span>` : ''}
     </button>
+    <span class="task-tools">
+      ${!t.done && t.due !== addDays(todayKey(), 1) ? `<button class="task-tool" data-action="task-tomorrow" data-id="${t.id}" title="${dt('Auf morgen verschieben', 'Move to tomorrow')}">${icon('sunrise')}</button>` : ''}
+      ${!t.done ? `<button class="task-tool ${t.prio ? 'on' : ''}" data-action="task-flag" data-id="${t.id}" title="${t.prio ? dt('Nicht mehr wichtig', 'Not important') : dt('Als wichtig markieren', 'Mark as important')}">${icon('flag')}</button>` : ''}
+    </span>
     ${t.prio ? `<span class="task-flag" title="Wichtig">${icon('flag')}</span>` : ''}
   </div>`;
 }
+
+// Seitenspalte: erledigte Aufgaben der letzten 14 Tage und die Serie an Tagen mit mindestens einer erledigten Aufgabe
+function taskStats() {
+  const today = todayKey();
+  const per = {};
+  for (const t of state.tasks) if (t.done && t.doneAt) { const k = keyOf(new Date(t.doneAt)); per[k] = (per[k] || 0) + 1; }
+  const days = range(addDays(today, -13), today);
+  let run = 0, k = per[today] ? today : addDays(today, -1);
+  while (per[k]) { run++; k = addDays(k, -1); }
+  return { days: days.map((d) => ({ k: d, n: per[d] || 0 })), run, max: Math.max(1, ...days.map((d) => per[d] || 0)) };
+}
+
+function taskWeekCard(open) {
+  const today = todayKey();
+  const days = range(today, addDays(today, 6));
+  const max = Math.max(1, ...days.map((k) => open.filter((t) => t.due === k).length));
+  return `
+  <article class="card fade-in">
+    <div class="card-head"><div><h2>${dt('Die nächsten 7 Tage', 'Next 7 days')}</h2><div class="sub">${dt('Klick auf einen Tag, um dort etwas einzutragen', 'Click a day to add something there')}</div></div><div class="icon-btn">${icon('calendar-range')}</div></div>
+    <div class="task-week">${days.map((k) => {
+      const n = open.filter((t) => t.due === k).length;
+      const label = k === today ? dt('Heute', 'Today') : new Intl.DateTimeFormat(LOCALE(), { weekday: 'short' }).format(parseKey(k));
+      return `<button class="tw-day ${k === today ? 'today' : ''} ${ui.taskQuickDue === k ? 'on' : ''}" data-action="task-quick-due" data-due="${k}" title="${esc(fmtLong(k))}">
+        <span class="tw-bar"><i style="height:${n ? 18 + (n / max) * 82 : 0}%"></i></span>
+        <b>${n || '·'}</b><small>${esc(label)}</small><em>${parseKey(k).getDate()}.</em></button>`;
+    }).join('')}</div>
+  </article>`;
+}
+
 
 function quickAdd(id, due = null) {
   const today = todayKey();
@@ -74,7 +131,13 @@ function viewTasks() {
   const weekStart = dayStart(mondayOf(today));
   const doneWeek = doneList.filter((t) => (t.doneAt || 0) >= weekStart).length;
   const overdue = open.filter((t) => t.due && t.due < today).length;
-  const groups = taskGroups(open);
+  const filter = ui.taskFilter || 'all';
+  const shown = open.filter((t) => filter === 'all' || (filter === 'prio' && t.prio) || (filter === 'repeat' && t.repeat) || (filter === 'steps' && stepsOf(t).length));
+  const groups = taskGroups(shown);
+  const st = taskStats();
+  if (ui.taskSearch) queueMicrotask(applyTaskSearch); // Suchbegriff bleibt nach dem Neuzeichnen aktiv
+  const filters = [['all', dt('Alle', 'All'), open.length], ['prio', dt('Wichtig', 'Important'), open.filter((t) => t.prio).length],
+    ['repeat', dt('Wiederkehrend', 'Recurring'), open.filter((t) => t.repeat).length], ['steps', dt('Mit Teilschritten', 'With steps'), open.filter((t) => stepsOf(t).length).length]];
   return `
   <header class="head fade-in">
     <div><div class="eyebrow">${open.length} offen</div><h1>Aufgaben</h1></div>
@@ -82,12 +145,19 @@ function viewTasks() {
   <section class="grid">
     <article class="card s8 fade-in">
       ${quickAdd('task-new')}
+      ${open.length ? `
+      <div class="task-filter">
+        <div class="task-chips">${filters.filter(([id, , n]) => id === 'all' || n || id === filter).map(([id, l, n]) => `<button type="button" class="chip ${filter === id ? 'on' : ''}" data-action="task-filter" data-filter="${id}">${l}<small>${n}</small></button>`).join('')}</div>
+        <label class="task-search">${icon('search')}<input id="task-search" placeholder="${dt('Suchen …', 'Search …')}" autocomplete="off" value="${esc(ui.taskSearch || '')}"></label>
+      </div>` : ''}
       ${groups.length ? groups.map((g) => `
         <div class="task-group ${g.id}">
-          <div class="daypart-head">${icon(g.icon)}<span>${g.label}</span><span class="daypart-count">${g.items.length}</span></div>
+          <div class="daypart-head">${icon(g.icon)}<span>${g.label}</span>${g.id === 'overdue' ? `<button class="task-head-btn" data-action="task-overdue-today">${icon('arrow-right')}${dt('Alle auf heute', 'All to today')}</button>` : ''}<span class="daypart-count">${g.items.length}</span></div>
           <div class="task-list">${g.items.map(taskRow).join('')}</div>
         </div>`).join('')
+        : open.length ? `<div class="task-empty">${icon('filter-x')}<b>${dt('Nichts in diesem Filter', 'Nothing in this filter')}</b><span>${dt('Wähl oben „Alle“, um wieder alles zu sehen.', 'Choose “All” above to see everything again.')}</span></div>`
         : `<div class="task-empty">${icon('party-popper')}<b>Alles erledigt.</b><span>Trag oben ein, was als Nächstes ansteht.</span></div>`}
+      <div class="task-empty task-nohit" hidden>${icon('search-x')}<b>${dt('Nichts gefunden', 'Nothing found')}</b></div>
     </article>
     <div class="col s4">
       <article class="card fade-in">
@@ -96,7 +166,10 @@ function viewTasks() {
           <div class="big">${num(doneWeek)}<small> erledigt</small></div>
           <div style="text-align:right"><div class="sub">Überfällig</div><div class="num" style="font-size:18px;color:${overdue ? 'var(--bad)' : 'var(--fg)'}">${num(overdue)}</div></div>
         </div>
+        <div class="task-spark" title="${dt('Erledigt pro Tag, letzte 14 Tage', 'Done per day, last 14 days')}">${st.days.map((d) => `<span class="${d.k === todayKey() ? 'today' : ''}" title="${esc(fmtShort(d.k))}: ${d.n}"><i data-anim="h" style="height:${d.n ? 12 + (d.n / st.max) * 88 : 4}%" class="${d.n ? '' : 'zero'}"></i></span>`).join('')}</div>
+        <div class="task-spark-foot"><span>${dt('Letzte 14 Tage', 'Last 14 days')}</span><span class="${st.run ? 'hot' : ''}">${icon('flame')}${st.run ? dt(`${st.run} ${st.run === 1 ? 'Tag' : 'Tage'} in Folge`, `${st.run} ${st.run === 1 ? 'day' : 'days'} in a row`) : dt('Noch keine Serie', 'No streak yet')}</span></div>
       </article>
+      ${taskWeekCard(open)}
       <article class="card fade-in">
         <div class="card-head">
           <div><h2>Erledigt</h2><div class="sub">${doneList.length ? 'Zuletzt abgehakt' : 'Noch nichts abgehakt'}</div></div>
@@ -160,6 +233,17 @@ function toggleTask(id, btn) {
   if (!t) return;
   t.done = !t.done;
   t.doneAt = t.done ? Date.now() : null;
+  if (t.done && t.repeat && !t.nextId) {
+    const n = { ...t, id: uid(), due: nextTaskDue(t.due || todayKey(), t.repeat), done: false, doneAt: null, nextId: null, createdAt: Date.now(),
+      steps: stepsOf(t).map((s) => ({ ...s, id: uid(), done: false })) };
+    state.tasks.push(n);
+    t.nextId = n.id;
+    toast(dt(`Nächstes Mal: ${dueLabel(n)}`, `Next time: ${dueLabel(n)}`));
+  } else if (!t.done && t.nextId) {
+    // Zurückgenommen: die schon angelegte nächste Aufgabe wieder entfernen, solange sie unberührt ist
+    state.tasks = state.tasks.filter((x) => !(x.id === t.nextId && !x.done));
+    t.nextId = null;
+  }
   save();
   if (t.done) { btn?.classList.add('on', 'pop'); burst(btn, 'var(--good)'); xpPop(btn, XP.task + (t.prio ? XP.taskPrio : 0)); }
   setTimeout(() => render('update'), t.done ? 260 : 0);
@@ -170,7 +254,7 @@ function toggleTask(id, btn) {
 function openTaskEditor(id) {
   const t = state.tasks.find((x) => x.id === id);
   if (!t) return;
-  ui.taskEdit = { ...t, confirmDelete: false };
+  ui.taskEdit = { ...t, steps: stepsOf(t).map((s) => ({ ...s })), repeat: t.repeat || '', confirmDelete: false };
   renderTaskEditor(true);
 }
 
@@ -185,6 +269,23 @@ function renderTaskEditor(first = false) {
     <div class="ce-row">
       <div class="field"><label for="te-due">Fällig am</label><input class="input" type="date" id="te-due" data-task-field="due" value="${e.due || ''}"></div>
       <div class="field"><label for="te-time">Uhrzeit (optional)</label><input class="input" type="time" id="te-time" data-task-field="time" value="${e.time || ''}" ${e.due ? '' : 'disabled'}></div>
+    </div>
+    <div class="field"><label for="te-repeat">${dt('Wiederholen', 'Repeat')}</label>
+      <select class="input" id="te-repeat" data-task-field="repeat">
+        <option value="">${dt('Nicht wiederholen', 'Does not repeat')}</option>
+        ${Object.entries(REPEAT).map(([k, l]) => `<option value="${k}" ${e.repeat === k ? 'selected' : ''}>${dt(...l)}</option>`).join('')}
+      </select>
+      ${e.repeat ? `<small class="field-hint">${dt('Wenn du sie abhakst, wird die nächste automatisch angelegt.', 'When you tick it off, the next one is created automatically.')}</small>` : ''}
+    </div>
+    <div class="field"><label>${dt('Teilschritte', 'Steps')}${e.steps.length ? ` · ${e.steps.filter((s) => s.done).length}/${e.steps.length}` : ''}</label>
+      <div class="te-steps">
+        ${e.steps.map((s) => `<div class="te-step ${s.done ? 'done' : ''}">
+          <button class="task-check small ${s.done ? 'on' : ''}" data-action="task-step-toggle" data-id="${s.id}" aria-label="${esc(s.title)}">${icon('check')}</button>
+          <span>${esc(s.title)}</span>
+          <button class="icon-btn" data-action="task-step-del" data-id="${s.id}" title="${dt('Entfernen', 'Remove')}">${icon('x')}</button>
+        </div>`).join('')}
+        <div class="te-step add">${icon('plus')}<input class="input" id="te-step-new" maxlength="120" placeholder="${dt('Teilschritt hinzufügen und Enter drücken', 'Add a step and press Enter')}" autocomplete="off"></div>
+      </div>
     </div>
     <label class="setting" for="te-prio" style="border:0;padding:0"><div><b>Wichtig</b><span>Wird mit einer Fahne markiert und oben einsortiert</span></div><input type="checkbox" class="switch" id="te-prio" data-action="task-prio" ${e.prio ? 'checked' : ''}></label>
     <div class="field"><label for="te-note">Notiz</label><textarea class="input note" id="te-note" data-task-field="note" rows="3" maxlength="1000" placeholder="optional">${esc(e.note || '')}</textarea></div>
@@ -209,6 +310,35 @@ document.addEventListener('input', (e) => {
   ui.taskEdit[f] = e.target.value;
   if (f === 'due') { const tm = document.getElementById('te-time'); if (tm) tm.disabled = !e.target.value; }
 });
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'te-repeat' && ui.taskEdit) { ui.taskEdit.repeat = e.target.value; renderTaskEditor(); }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.target.id !== 'te-step-new' || e.key !== 'Enter') return;
+  e.preventDefault();
+  const v = e.target.value.trim();
+  if (!v || !ui.taskEdit) return;
+  ui.taskEdit.steps.push({ id: uid(), title: v, done: false });
+  renderTaskEditor();
+  document.getElementById('te-step-new')?.focus();
+});
+
+// Suche filtert nur die sichtbaren Zeilen, ohne die Seite neu zu bauen
+function applyTaskSearch() {
+  const q = (ui.taskSearch || '').trim().toLowerCase();
+  const card = document.querySelector('#task-search')?.closest('.card');
+  if (!card) return;
+  let hits = 0;
+  card.querySelectorAll('.task-group').forEach((g) => {
+    let n = 0;
+    g.querySelectorAll('.task-row').forEach((r) => { const ok = !q || r.dataset.q.includes(q); r.hidden = !ok; if (ok) n++; });
+    g.hidden = !n;
+    hits += n;
+  });
+  const none = card.querySelector('.task-nohit');
+  if (none) none.hidden = !q || hits > 0;
+}
+document.addEventListener('input', (e) => { if (e.target.id === 'task-search') { ui.taskSearch = e.target.value; applyTaskSearch(); } });
 
 function saveTask() {
   const e = ui.taskEdit;
@@ -216,7 +346,10 @@ function saveTask() {
   const title = e.title.trim();
   if (!title) { e.error = 'Gib der Aufgabe einen Namen.'; renderTaskEditor(); return; }
   const t = state.tasks.find((x) => x.id === e.id);
-  Object.assign(t, { title, due: e.due || null, time: e.due && e.time ? e.time : null, note: (e.note || '').trim(), prio: !!e.prio });
+  const pending = document.getElementById('te-step-new')?.value.trim();
+  if (pending) e.steps.push({ id: uid(), title: pending, done: false });
+  Object.assign(t, { title, due: e.due || null, time: e.due && e.time ? e.time : null, note: (e.note || '').trim(), prio: !!e.prio,
+    steps: e.steps, repeat: e.repeat || null });
   ui.taskEdit = null;
   save();
   closeModal();
@@ -248,6 +381,26 @@ function taskAction(a, el) {
       state.tasks = state.tasks.filter((t) => t.id !== ui.taskEdit.id);
       ui.taskEdit = null; save(); closeModal(); toast('Aufgabe gelöscht'); render('update');
       return true;
+    case 'task-filter': ui.taskFilter = el.dataset.filter; render('update'); return true;
+    case 'task-tomorrow': {
+      const t = state.tasks.find((x) => x.id === el.dataset.id);
+      if (t) { t.due = addDays(todayKey(), 1); save(); toast(dt(`„${t.title}“ auf morgen verschoben`, `“${t.title}” moved to tomorrow`)); render('update'); }
+      return true;
+    }
+    case 'task-flag': {
+      const t = state.tasks.find((x) => x.id === el.dataset.id);
+      if (t) { t.prio = !t.prio; save(); render('update'); }
+      return true;
+    }
+    case 'task-overdue-today': {
+      const today = todayKey();
+      const late = state.tasks.filter((t) => !t.done && t.due && t.due < today);
+      late.forEach((t) => { t.due = today; });
+      save(); toast(dt(`${late.length} ${late.length === 1 ? 'Aufgabe' : 'Aufgaben'} auf heute verschoben`, `Moved ${late.length} to today`)); render('update');
+      return true;
+    }
+    case 'task-step-toggle': { const s = ui.taskEdit.steps.find((x) => x.id === el.dataset.id); if (s) s.done = !s.done; renderTaskEditor(); return true; }
+    case 'task-step-del': ui.taskEdit.steps = ui.taskEdit.steps.filter((x) => x.id !== el.dataset.id); renderTaskEditor(); return true;
     case 'task-clear': ui.confirmClearTasks = true; render('update'); return true;
     case 'task-clear-yes':
       state.tasks = state.tasks.filter((t) => !t.done);

@@ -1,6 +1,6 @@
 'use strict';
 
-/* Startseite: XP-Tagesziel, Serien-Hinweis, Zeitleiste, „Als Nächstes“, Schnell-Eingabe, Wetter, Gedanke des Tages,
+/* Startseite: XP-Tagesziel, Serien-Hinweis, Zeitleiste, „Als Nächstes“, Schnell-Eingabe, Gedanke des Tages,
    Geburtstage, Mini-Monatskalender und das Anpassen der Karten (ein- und ausblenden, per Ziehen sortieren).
    Texte mit wechselnden Zahlen kommen über dt() gleich in der richtigen Sprache, statt über das Wörterbuch. */
 
@@ -28,7 +28,6 @@ const DASH_CARDS = {
 const DASH_INFO = {
   quick: { de: 'Schnell-Eingabe', en: 'Quick entry' },
   next: { de: 'Als Nächstes', en: 'Up next' },
-  weather: { de: 'Wetter', en: 'Weather' },
   birthdays: { de: 'Geburtstage', en: 'Birthdays' },
   streaks: { de: 'Serien-Hinweis', en: 'Streak reminder' },
   thought: { de: 'Gedanke des Tages', en: 'Thought of the day' },
@@ -77,7 +76,6 @@ function dashGrid(cards) {
     </div>`;
   }).join('');
   return `
-  ${edit ? dashToolbar() : ''}
   <section class="dash ${edit ? 'edit' : ''}">
     <div class="dash-zone z-top" data-zone="top" data-hint="${dt('Hierher ziehen', 'Drop here')}">${zone('top')}</div>
     <div class="dash-zone z-main" data-zone="main" data-hint="${dt('Hierher ziehen', 'Drop here')}">${zone('main')}</div>
@@ -103,7 +101,6 @@ function dashHead() {
   const today = todayKey();
   const lines = [];
   if (dashShown('next')) lines.push(nextUpPill());
-  if (dashShown('weather')) lines.push(weatherPill());
   if (dashShown('birthdays')) lines.push(...birthdayPills(today));
   if (dashShown('streaks')) lines.push(...streakPills(today));
   const pills = lines.filter(Boolean);
@@ -118,6 +115,7 @@ function dashHead() {
       <button class="btn primary" data-action="new-habit">${icon('plus')}Neue Gewohnheit</button>
     </div>
   </header>
+  ${ui.dashEdit ? dashToolbar() : ''}
   ${dashShown('quick') ? quickAddBar() : ''}
   ${pills.length ? `<div class="info-pills fade-in">${pills.join('')}</div>` : ''}`;
 }
@@ -273,6 +271,7 @@ function xpCard() {
       <div style="text-align:right"><div class="sub">Level</div><div class="num" style="font-size:18px">${x.level}</div></div>
     </div>
     <div class="meter"><span data-anim="w" style="width:${share * 100}%"></span></div>
+    ${weeklyBlock(true)}
   </article>`;
 }
 
@@ -294,8 +293,8 @@ function timelineCard() {
     const lane = i.startMs >= lanes[0] ? 0 : i.startMs >= lanes[1] ? 1 : 0;
     lanes[lane] = Math.max(lanes[lane], i.endMs);
     const l = pos(i.startMs), w = Math.max(3, pos(i.endMs) - l);
-    const t = `${hhmm(i.startMs)} ${esc(i.ev.title)}`;
-    return `<div class="tl-ev lane${lane} ${i.ev.task ? 'task' : ''} ${i.ev.done ? 'done' : ''}" style="left:${l}%;width:${w}%;--c:${colorOf(i)}" title="${t}"><span>${esc(i.ev.title)}</span></div>`;
+    const t = `${hhmm(i.startMs)} – ${hhmm(i.endMs)} ${esc(i.ev.title)}`;
+    return `<button class="tl-ev lane${lane} ${i.ev.task ? 'task' : ''} ${i.ev.done ? 'done' : ''}" style="left:${l}%;width:${w}%;--c:${colorOf(i)}" title="${t}" ${tlOpen(i, today)}><span>${esc(i.ev.title)}</span></button>`;
   }).join('');
 
   // Tageszeiten der Gewohnheiten als Bänder
@@ -320,7 +319,7 @@ function timelineCard() {
       <div><h2>${dt('Dein Tag', 'Your day')}</h2><div class="sub">${dt('Termine, Aufgaben mit Uhrzeit und deine Gewohnheiten nach Tageszeit', 'Events, timed tasks and your habits by time of day')}</div></div>
       <button class="icon-btn" data-action="goto" data-view="calendar" title="${dt('Zum Kalender', 'To calendar')}">${icon('calendar-days')}</button>
     </div>
-    ${allDay.length ? `<div class="tl-allday">${allDay.slice(0, 4).map((i) => `<span class="chip" style="--c:${colorOf(i)}">${esc(i.ev.title)}</span>`).join('')}</div>` : ''}
+    ${allDay.length ? `<div class="tl-allday">${allDay.slice(0, 4).map((i) => `<button class="chip" style="--c:${colorOf(i)}" ${tlOpen(i, today)}>${esc(i.ev.title)}</button>`).join('')}</div>` : ''}
     <div class="timeline" data-first="${firstH}">
       <div class="tl-bands">${parts}</div>
       <div class="tl-events">${blocks}</div>
@@ -330,6 +329,10 @@ function timelineCard() {
   </article>`;
 }
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
+// Klick auf einen Eintrag öffnet ihn dort, wo man ihn bearbeitet: Termin, Aufgabe oder der Stundenplan
+const tlOpen = (i, day) => (i.ev.task ? `data-action="task-edit" data-id="${esc(i.ev.taskId)}"`
+  : i.ev.shift ? 'data-action="goto" data-view="schedule"'
+  : `data-action="cal-open" data-id="${esc(i.ev.id)}" data-day="${day}"`);
 
 /* ================= Mini-Monatskalender ================= */
 
@@ -359,82 +362,14 @@ function monthCard() {
   </article>`;
 }
 
-/* ================= Wetter ================= */
-
-const WEATHER = [
-  [[0], 'Klar', 'Clear', 'sun'], [[1], 'Überwiegend klar', 'Mostly clear', 'sun'], [[2], 'Teils bewölkt', 'Partly cloudy', 'cloud-sun'],
-  [[3], 'Bedeckt', 'Overcast', 'cloud'], [[45, 48], 'Nebel', 'Fog', 'cloud-fog'], [[51, 53, 55, 56, 57], 'Nieselregen', 'Drizzle', 'cloud-drizzle'],
-  [[61, 63, 65, 66, 67, 80, 81, 82], 'Regen', 'Rain', 'cloud-rain'], [[71, 73, 75, 77, 85, 86], 'Schnee', 'Snow', 'cloud-snow'],
-  [[95, 96, 99], 'Gewitter', 'Thunderstorm', 'cloud-lightning'],
-];
-const weatherOf = (code) => WEATHER.find((w) => w[0].includes(code)) || WEATHER[3];
-
-function weatherPill() {
-  const place = state.settings.weatherPlace;
-  if (!window.api?.weather) return '';
-  if (!place) return `<button class="info-pill action" data-action="weather-setup" style="--c:var(--cyan)">${icon('cloud-sun')}<b>${dt('Wetter', 'Weather')}:</b> ${dt('Ort festlegen', 'set your town')}</button>`;
-  const w = ui.weather;
-  if (!w || w.place !== place.name || Date.now() - w.at > 30 * 60000) loadWeather();
-  if (!w?.data) return '';
-  const c = w.data.current, d = w.data.daily;
-  const [, de, en, ic] = weatherOf(c.weather_code);
-  const rain = d.precipitation_probability_max?.[0];
-  return `<span class="info-pill" style="--c:var(--cyan)">${icon(ic)}<b>${Math.round(c.temperature_2m)}°</b> ${dt(de, en)} · ${Math.round(d.temperature_2m_max[0])}° / ${Math.round(d.temperature_2m_min[0])}°${rain !== undefined && rain !== null ? ` · ${dt('Regen', 'Rain')} ${rain} %` : ''} <small>${esc(place.name)}</small></span>`;
-}
-
-let weatherLoading = false;
-async function loadWeather() {
-  const place = state.settings.weatherPlace;
-  if (weatherLoading || !place) return;
-  weatherLoading = true;
-  try {
-    const data = await window.api.weather(place.lat, place.lon);
-    ui.weather = { place: place.name, at: Date.now(), data };
-    if (ui.view === 'today' && !ui.modal && !quickFocused()) render('update');
-  } catch {
-    ui.weather = { place: place.name, at: Date.now(), data: ui.weather?.data || null }; // später erneut versuchen
-  }
-  weatherLoading = false;
-}
-
-// Einstellungen: Ort suchen und merken
-async function findWeatherPlace() {
-  const input = document.getElementById('weather-place');
-  const name = input?.value.trim();
-  if (!name || !window.api?.weatherFind) return;
-  ui.weatherMsg = dt('Suche …', 'Searching …');
-  render('update');
-  try {
-    const r = await window.api.weatherFind(name, state.settings.lang || 'de');
-    const hit = r?.results?.[0];
-    if (!hit) { ui.weatherMsg = dt(`„${name}“ wurde nicht gefunden.`, `“${name}” was not found.`); render('update'); return; }
-    state.settings.weatherPlace = { name: hit.name, region: [hit.admin1, hit.country].filter(Boolean).join(', '), lat: hit.latitude, lon: hit.longitude };
-    ui.weatherMsg = null;
-    ui.weather = null;
-    save();
-    render('update');
-  } catch {
-    ui.weatherMsg = dt('Keine Verbindung zum Wetterdienst.', 'Could not reach the weather service.');
-    render('update');
-  }
-}
-
 function homeSettingsCard() {
   const s = state.settings;
-  const p = s.weatherPlace;
-  const desktop = !!window.api?.weather;
   return `
   <article class="card s6 fade-in">
-    <div class="card-head"><div><h2>${dt('Startseite', 'Home')}</h2><div class="sub">${dt('Tagesziel, Wetter und Anordnung der Karten', 'Daily goal, weather and card layout')}</div></div><div class="icon-btn">${icon('layout-dashboard')}</div></div>
+    <div class="card-head"><div><h2>${dt('Startseite', 'Home')}</h2><div class="sub">${dt('Tagesziel und Anordnung der Karten', 'Daily goal and card layout')}</div></div><div class="icon-btn">${icon('layout-dashboard')}</div></div>
     <div class="settings-list">
       <label class="setting" for="set-xpGoal"><div><b>${dt('Tagesziel für XP', 'Daily XP goal')}</b><span>${dt('Erscheint als Balken auf der Startseite', 'Shown as a bar on the home page')}</span></div><input type="number" min="10" max="1000" step="10" class="input small-input" data-setting="xpGoal" id="set-xpGoal" value="${s.xpGoal || 60}"></label>
-      <div class="setting"><div><b>${dt('Wetter', 'Weather')}</b><span>${p ? `${esc(p.name)}${p.region ? `, ${esc(p.region)}` : ''}` : dt('Gib deinen Ort ein, dann siehst du das Wetter für heute', 'Enter your town to see today’s weather')}</span></div>
-        ${p ? `<button class="btn small ghost" data-action="weather-off">${dt('Ausschalten', 'Turn off')}</button>` : ''}</div>
-      ${!p && desktop ? `<div class="weather-find"><input class="input" id="weather-place" placeholder="${dt('z. B. Hamburg', 'e.g. London')}" autocomplete="off"><button class="btn small" data-action="weather-find">${icon('map-pin')}${dt('Suchen', 'Search')}</button></div>` : ''}
-      ${!desktop ? `<div class="muted">Nur in der Desktop-App verfügbar.</div>` : ''}
-      ${ui.weatherMsg ? `<div class="sub">${esc(ui.weatherMsg)}</div>` : ''}
     </div>
-    <div class="setting-note">${icon('info')}<span>${dt('Das Wetter kommt von Open-Meteo, ohne Konto. Dafür wird nur der Ort übertragen.', 'Weather comes from Open-Meteo, no account needed. Only the town is sent.')}</span></div>
     <button class="btn small" data-action="dash-edit" style="align-self:flex-start">${icon('sliders-horizontal')}${dt('Startseite anpassen', 'Customize home')}</button>
   </article>`;
 }
@@ -556,30 +491,37 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.target.value.trim()) { e.preventDefault(); quickCreate(e.target.value.trim()); }
     if (e.key === 'Escape') { e.target.value = ''; document.getElementById('quick-preview').innerHTML = ''; e.target.blur(); }
   }
-  if (e.target.id === 'weather-place' && e.key === 'Enter') { e.preventDefault(); findWeatherPlace(); }
 });
 
 /* ================= Karten verschieben ================= */
 
-/* Die Karte hängt beim Ziehen an der Maus (leicht gekippt, mit Schatten). An ihrem alten Platz bleibt eine gestrichelte Lücke,
-   die zu der Stelle wandert, wo die Karte landen würde. Die anderen Karten rutschen dabei weich zur Seite (FLIP-Animation).
-   Beim Loslassen gleitet die Karte in die Lücke. */
+/* Die Karte hängt beim Ziehen an der Maus (leicht gekippt, mit Schatten). An ihrem alten Platz bleibt eine gestrichelte Lücke
+   in der echten Größe der Karte, die zu der Stelle wandert, wo die Karte landen würde. Die anderen Karten gleiten dabei weich
+   zur Seite (FLIP-Animation). Gemessen wird immer an der Lage ohne laufende Animation, so pendelt die Lücke nicht hin und her.
+   Beim Loslassen gleitet die Karte genau in die Lücke. Bewegt wird nur über transform (Verschieben und Zoomen), nie über
+   Breite oder Höhe, damit der Inhalt der Karten nicht bei jedem Bild neu umbrochen werden muss. */
 let drag = null;
+const EASE_OUT = 'cubic-bezier(.2, .8, .2, 1)';
+
+// Lage eines Elements ohne die gerade laufende Verschiebung
+function layoutRect(el) {
+  const r = el.getBoundingClientRect();
+  const t = getComputedStyle(el).transform;
+  if (!t || t === 'none') return r;
+  const m = new DOMMatrix(t);
+  return new DOMRect(r.left - m.e, r.top - m.f, r.width, r.height);
+}
 
 function flip(change) {
   const items = [...document.querySelectorAll('.dash .dash-item')];
   const before = new Map(items.map((el) => [el, el.getBoundingClientRect()]));
+  for (const el of items) el._flip?.cancel();
   change();
   for (const el of items) {
     const a = before.get(el), b = el.getBoundingClientRect();
     const dx = a.left - b.left, dy = a.top - b.top;
-    if (!dx && !dy) continue;
-    el.style.transition = 'none';
-    el.style.transform = `translate(${dx}px, ${dy}px)`;
-    requestAnimationFrame(() => {
-      el.style.transition = 'transform .32s cubic-bezier(.2, .8, .2, 1)';
-      el.style.transform = '';
-    });
+    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) continue;
+    el._flip = el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0, 0)' }], { duration: 280, easing: EASE_OUT });
   }
 }
 
@@ -595,94 +537,88 @@ function startDrag() {
   document.body.appendChild(ghost);
   requestAnimationFrame(() => ghost.classList.add('lifted'));
   item.classList.add('placeholder');
-  item.style.height = `${r.height}px`;
-  drag.ghost = ghost;
-  drag.started = true;
-  drag.home = { parent: item.parentElement, next: item.nextSibling };
-  drag.tilt = 0;
-  drag.lastX = drag.sx;
-  drag.coolUntil = 0;
+  Object.assign(drag, { ghost, started: true, home: { parent: item.parentElement, next: item.nextSibling }, tilt: 0, lastX: drag.sx, w: r.width, h: r.height, px: -1, py: -1, nextPlace: 0 });
   document.body.classList.add('dash-dragging');
-  drag.scrollTimer = setInterval(autoScroll, 16);
+  drag.raf = requestAnimationFrame(dragFrame);
 }
 
-function moveGhost(x, y) {
-  // Leichtes Kippen in Zugrichtung, das sich wieder beruhigt
-  drag.tilt = Math.max(-7, Math.min(7, drag.tilt * 0.8 + (x - drag.lastX) * 0.35));
+// Ein Takt pro Bild: Karte an die Maus, Lücke nachziehen, am Rand scrollen
+function dragFrame() {
+  if (!drag?.started) return;
+  const { x, y } = drag;
+  // Platz nur neu suchen, wenn sich die Maus bewegt oder die Seite gescrollt hat, und nicht öfter als alle 70 ms umsetzen.
+  // So muss der Browser die Seite nicht in mehreren Bildern hintereinander neu anordnen.
+  const scrolled = autoScroll();
+  const now = performance.now();
+  if ((scrolled || Math.abs(x - drag.px) + Math.abs(y - drag.py) > 1) && now > drag.nextPlace) {
+    drag.px = x; drag.py = y;
+    if (placeAt(x, y)) drag.nextPlace = now + 70;
+  }
+  // Die Karte in der Hand behält ihre Größe; die Lücke zeigt, wie groß sie am neuen Platz wird
+  drag.tilt = Math.max(-7, Math.min(7, drag.tilt * 0.82 + (x - drag.lastX) * 0.3));
   drag.lastX = x;
-  drag.x = x; drag.y = y;
   drag.ghost.style.transform = `translate(${x - drag.dx}px, ${y - drag.dy}px) rotate(${drag.tilt * 0.4 - 1}deg)`;
+  drag.raf = requestAnimationFrame(dragFrame);
+}
+
+// Steht die Maus hinter dieser Karte? In einer Reihe zählt die Lesereihenfolge, in einer Spalte nur die Höhe.
+function isBefore(r, x, y, row) {
+  if (!row) return y > r.top + r.height / 2;
+  if (y > r.bottom) return true;
+  return y >= r.top && x > r.left + r.width / 2;
 }
 
 // Lücke an die Stelle unter der Maus bringen, wenn die Karte dort hinpasst
 function placeAt(x, y) {
-  const el = document.elementFromPoint(x, y);
-  const zone = el?.closest('.dash-zone');
-  if (!zone) return;
+  const zone = [...document.querySelectorAll('.dash .dash-zone')].find((z) => {
+    const r = z.getBoundingClientRect();
+    return x >= r.left - 6 && x <= r.right + 6 && y >= r.top - 6 && y <= r.bottom + 6;
+  });
+  if (!zone) { drag.ghost.classList.remove('denied'); return false; }
   const ok = fitsZone(drag.id, zone.dataset.zone);
   drag.ghost.classList.toggle('denied', !ok);
-  if (!ok || performance.now() < drag.coolUntil) return;
+  if (!ok) return false;
   const ph = drag.item;
   const items = [...zone.querySelectorAll(':scope > .dash-item:not(.placeholder)')];
-  let ref = null;
-  if (items.length) {
-    const horiz = zone.dataset.zone === 'top';
-    const over = el.closest('.dash-item:not(.placeholder)');
-    const target = over && over.parentElement === zone ? over
-      : items.reduce((best, it) => {
-        const r = it.getBoundingClientRect();
-        const d = Math.hypot(x - (r.left + r.width / 2), y - (r.top + r.height / 2));
-        return !best || d < best.d ? { it, d } : best;
-      }, null).it;
-    const r = target.getBoundingClientRect();
-    const after = horiz ? x > r.left + r.width / 2 : y > r.top + r.height / 2;
-    ref = after ? target.nextElementSibling : target;
-    if (ref === ph) ref = ph.nextElementSibling;
-  }
-  if (ph.parentElement === zone && (ph.nextElementSibling === ref || ph === ref)) return;
-  flip(() => {
-    ph.style.height = '';
-    zone.insertBefore(ph, ref);
-    const r = drag.ghost.getBoundingClientRect();
-    ph.style.height = `${Math.min(r.height, 260)}px`;
-  });
-  drag.coolUntil = performance.now() + 140;
+  const row = getComputedStyle(zone).flexDirection === 'row';
+  const ref = items[items.filter((it) => isBefore(layoutRect(it), x, y, row)).length] || null;
+  if (ph.parentElement === zone && (ph.nextElementSibling === ref || (!ref && !ph.nextElementSibling))) return false;
+  flip(() => zone.insertBefore(ph, ref));
+  return true;
 }
 
 // Am Rand der Seite automatisch weiterscrollen
 function autoScroll() {
-  if (!drag?.started || drag.y === undefined) return;
   const sc = document.getElementById('scroller');
   const r = sc.getBoundingClientRect();
-  const edge = 70;
-  const v = drag.y < r.top + edge ? -(r.top + edge - drag.y) / 4 : drag.y > r.bottom - edge ? (drag.y - (r.bottom - edge)) / 4 : 0;
-  if (v) { sc.scrollTop += v; placeAt(drag.x, drag.y); }
+  // Erst ganz nah am Rand und sanft anlaufend, damit die Seite nicht beim Zielen auf die obere Reihe losrutscht
+  const edge = 44, y = drag.y;
+  const depth = y < r.top + edge ? -(r.top + edge - y) : y > r.bottom - edge ? y - (r.bottom - edge) : 0;
+  const v = Math.sign(depth) * Math.min(1, Math.abs(depth) / edge) ** 2 * 16;
+  if (!v) return false;
+  const before = sc.scrollTop;
+  sc.scrollTop += v;
+  return sc.scrollTop !== before;
 }
 
 function finishDrag(cancel = false) {
   const d = drag;
   drag = null;
   if (!d?.started) return;
-  clearInterval(d.scrollTimer);
+  cancelAnimationFrame(d.raf);
   document.body.classList.remove('dash-dragging');
   if (cancel) flip(() => d.home.parent.insertBefore(d.item, d.home.next));
-  d.item.style.height = '';
-  // Karte gleitet in ihre Lücke
-  const r = d.item.getBoundingClientRect();
+  // Karte gleitet zu ihrer Lücke und blendet dabei in die echte Karte in der neuen Größe über.
+  // Bei ähnlicher Größe passt sie sich leicht an, bei sehr anderer Größe wird nichts verzerrt, die Überblendung übernimmt.
+  const r = layoutRect(d.item);
+  const k = Math.max(0.9, Math.min(1.1, r.width / d.w));
   d.ghost.classList.remove('lifted', 'denied');
   d.ghost.classList.add('landing');
-  d.ghost.style.width = `${r.width}px`;
-  d.ghost.style.height = `${r.height}px`;
-  d.ghost.style.transform = `translate(${r.left}px, ${r.top}px)`;
-  const done2 = () => {
-    if (!d.ghost.isConnected) return;
-    d.ghost.remove();
-    d.item.classList.remove('placeholder');
-    d.item.classList.add('dropped');
-    setTimeout(() => d.item.classList.remove('dropped'), 450);
-  };
-  d.ghost.addEventListener('transitionend', done2, { once: true });
-  setTimeout(done2, 400);
+  d.ghost.style.transform = `translate(${r.left + (r.width - d.w * k) / 2}px, ${r.top}px) scale(${k})`;
+  d.item.classList.remove('placeholder');
+  d.item.classList.add('revealing');
+  requestAnimationFrame(() => requestAnimationFrame(() => { d.item.classList.add('revealed'); d.ghost.classList.add('fading'); }));
+  setTimeout(() => { d.ghost.remove(); d.item.classList.remove('revealing', 'revealed'); }, 420);
   if (!cancel) {
     const st = dashState();
     for (const zone of document.querySelectorAll('.dash .dash-zone')) {
@@ -697,16 +633,12 @@ document.addEventListener('pointerdown', (e) => {
   if (!item || e.button !== 0 || e.target.closest('button, input, a, select, textarea')) return;
   e.preventDefault();
   const r = item.getBoundingClientRect();
-  drag = { item, id: item.dataset.card, sx: e.clientX, sy: e.clientY, dx: e.clientX - r.left, dy: e.clientY - r.top, started: false };
+  drag = { item, id: item.dataset.card, sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY, dx: e.clientX - r.left, dy: e.clientY - r.top, started: false };
 });
 document.addEventListener('pointermove', (e) => {
   if (!drag) return;
-  if (!drag.started) {
-    if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 6) return;
-    startDrag();
-  }
-  moveGhost(e.clientX, e.clientY);
-  placeAt(e.clientX, e.clientY);
+  drag.x = e.clientX; drag.y = e.clientY;
+  if (!drag.started && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) >= 6) startDrag();
 });
 document.addEventListener('pointerup', () => finishDrag(false));
 document.addEventListener('pointercancel', () => finishDrag(true));
@@ -726,11 +658,6 @@ function dashAction(a, el) {
       render('update');
       return true;
     }
-    case 'weather-find': findWeatherPlace(); return true;
-    case 'weather-setup':
-      go('settings');
-      setTimeout(() => { const i = document.getElementById('weather-place'); i?.scrollIntoView({ block: 'center', behavior: 'smooth' }); i?.focus(); }, 350);
-      return true;
     case 'tl-habit': {
       // Zur Zeile in „Heute dran“ springen und sie kurz aufleuchten lassen
       const row = document.querySelector(`.habit-row[data-habit="${el.dataset.id}"]`);
@@ -741,7 +668,6 @@ function dashAction(a, el) {
       row.classList.add('flash');
       return true;
     }
-    case 'weather-off': state.settings.weatherPlace = null; ui.weather = null; save(); render('update'); return true;
   }
   return false;
 }

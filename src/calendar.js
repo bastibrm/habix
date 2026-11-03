@@ -3,7 +3,7 @@
 /* Kalender: eigene Termine, Schichten aus dem Stundenplan und importierte Kalender (iCal-Abo oder .ics-Datei).
    Termine ganztägig: start/end als Tages-Schlüssel (end inklusive). Mit Uhrzeit: start/end in Millisekunden. */
 
-const CAL_COLORS = ['#8f7bff', '#5ee0ff', '#ff7ab6', '#ffc46b', '#57e3b4', '#ff8f6b', '#7aa2ff', '#c4f06b'];
+const CAL_COLORS = ['#1e90ff', '#5ee0ff', '#8f7bff', '#ff7ab6', '#ffc46b', '#57e3b4', '#ff8f6b', '#7aa2ff', '#c4f06b'];
 const SHIFT_COLOR = '#57e3b4';
 const WD_LONG = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
 
@@ -227,7 +227,7 @@ function shiftInstances(fromKey, toKey) {
       let e = i;
       while (set.has(e + 1)) e++;
       const s = slotStart(k, i), end = slotStart(k, e) + SLOT_MS;
-      out.push({ ev: { id: `shift:${k}:${i}`, cal: 'shifts', title: 'Arbeit', shift: true }, allDay: false, startMs: s, endMs: end, startKey: k, endKey: k });
+      out.push({ ev: { id: `shift:${k}:${i}`, cal: 'shifts', title: dt('Arbeit', 'Work'), shift: true }, allDay: false, startMs: s, endMs: end, startKey: k, endKey: k });
     }
   }
   return out;
@@ -265,6 +265,7 @@ const timeLabel = (inst, k) => {
 
 function viewCalendar() {
   if (ui.calMode === 'week') return viewCalendarWeek();
+  if (ui.calMode === 'year') return viewCalendarYear();
   const today = todayKey();
   const month = ui.calMonth || today.slice(0, 7);
   const first = `${month}-01`;
@@ -609,6 +610,81 @@ document.addEventListener('change', (e) => {
 });
 
 
+/* ================= Jahresansicht ================= */
+
+/* Zwölf kleine Monate: farbige Punkte für die Termine des Tages, je voller ein Tag, desto stärker hinterlegt.
+   Klick wählt den Tag (rechts stehen seine Einträge), Doppelklick oder Klick auf den Monatsnamen öffnet den Monat.
+   Schichten aus dem Stundenplan zählen hier nicht mit, sonst wäre jeder Arbeitstag voll. */
+function viewCalendarYear() {
+  const today = todayKey();
+  const year = ui.calYear || Number(today.slice(0, 4));
+  const from = `${year}-01-01`, to = `${year}-12-31`;
+  const list = instancesBetween(from, to).filter((i) => !i.ev.shift);
+  const map = byDay(list, from, to);
+  const sel = ui.calDay && ui.calDay.startsWith(String(year)) ? ui.calDay : (today.startsWith(String(year)) ? today : from);
+  const selList = byDay(instancesBetween(sel, sel), sel, sel)[sel] || [];
+  const isNow = year === Number(today.slice(0, 4));
+  const monthName = (m, style = 'long') => new Intl.DateTimeFormat(LOCALE(), { month: style }).format(new Date(year, m, 1));
+  const perMonth = Array.from({ length: 12 }, (_, m) => {
+    const p = `${year}-${pad(m + 1)}`;
+    return Object.entries(map).reduce((n, [k, v]) => n + (k.startsWith(p) ? v.length : 0), 0);
+  });
+  const maxMonth = Math.max(1, ...perMonth);
+  const events = list.filter((i) => !i.ev.task).length, tasks = list.filter((i) => i.ev.task).length;
+
+  const months = Array.from({ length: 12 }, (_, m) => {
+    const first = `${year}-${pad(m + 1)}-01`;
+    const days = new Date(year, m + 1, 0).getDate();
+    const lead = wdOf(first);
+    const cells = [];
+    for (let i = 0; i < lead; i++) cells.push('<span class="yd out"></span>');
+    for (let d = 1; d <= days; d++) {
+      const k = `${year}-${pad(m + 1)}-${pad(d)}`;
+      const items = map[k] || [];
+      const heat = Math.min(3, items.length);
+      const dots = items.slice(0, 3).map((i) => `<i style="--c:${colorOf(i)}"></i>`).join('');
+      const tip = items.length ? `${fmtShort(k)}: ${items.slice(0, 4).map((i) => i.ev.title).join(', ')}${items.length > 4 ? ' …' : ''}` : fmtShort(k);
+      cells.push(`<button class="yd h${heat} ${k === today ? 'today' : ''} ${k === sel ? 'sel' : ''} ${wdOf(k) > 4 ? 'we' : ''}" data-action="cal-yday" data-day="${k}" title="${esc(tip)}">${d}${dots ? `<span class="yd-dots">${dots}</span>` : ''}</button>`);
+    }
+    const now = today.slice(0, 7) === first.slice(0, 7);
+    return `
+    <div class="ym ${now ? 'now' : ''}" style="--i:${m}">
+      <button class="ym-head" data-action="cal-ymonth" data-month="${first.slice(0, 7)}" title="${dt('Monat öffnen', 'Open month')}"><b>${esc(monthName(m))}</b>${perMonth[m] ? `<small>${perMonth[m]}</small>` : ''}</button>
+      <div class="ym-grid">${WD.map((w) => `<span class="ym-wd">${esc(tr(w).slice(0, 2))}</span>`).join('')}${cells.join('')}</div>
+    </div>`;
+  }).join('');
+
+  return `
+  ${calHeader(String(year), isNow, sel)}
+
+  <section class="grid">
+    <article class="card s8 fade-in cal-card year-card">
+      <div class="year-grid">${months}</div>
+    </article>
+
+    <div class="col s4">
+      <article class="card fade-in">
+        <div class="card-head">
+          <div><h2>${esc(fmtLong(sel))}</h2><div class="sub">${selList.length ? `${selList.length} ${selList.length === 1 ? 'Eintrag' : 'Einträge'}` : 'Nichts eingetragen'}</div></div>
+          <button class="icon-btn" data-action="cal-new" data-day="${sel}" title="Termin an diesem Tag">${icon('plus')}</button>
+        </div>
+        <div class="agenda">
+          ${selList.length ? selList.map((i) => agendaRow(i, sel)).join('') : `<button class="agenda-empty" data-action="cal-new" data-day="${sel}">${icon('calendar-plus')}Termin hinzufügen</button>`}
+        </div>
+      </article>
+
+      <article class="card fade-in">
+        <div class="card-head"><div><h2>${dt('Dein Jahr', 'Your year')}</h2><div class="sub">${dt(`${events} Termine und ${tasks} Aufgaben mit Datum`, `${events} events and ${tasks} dated tasks`)}</div></div><div class="icon-btn">${icon('calendar-range')}</div></div>
+        <div class="yr-bars">${perMonth.map((n, m) => `
+          <button class="yr-bar ${isNow && m === new Date().getMonth() ? 'now' : ''}" data-action="cal-ymonth" data-month="${year}-${pad(m + 1)}" title="${esc(monthName(m))}: ${n}">
+            <span class="yr-track"><i data-anim="h" style="height:${n ? 8 + (n / maxMonth) * 92 : 0}%"></i></span>
+            <small>${esc(monthName(m, 'narrow'))}</small>
+          </button>`).join('')}</div>
+      </article>
+    </div>
+  </section>`;
+}
+
 /* ================= Wochenansicht mit Zeitleiste ================= */
 
 const HOUR_PX = 48;
@@ -616,19 +692,22 @@ const minutesOf = (ms) => { const d = new Date(ms); return d.getHours() * 60 + d
 const minLabel = (m) => `${pad(Math.floor(m / 60) % 24)}:${pad(m % 60)}`;
 
 function calHeader(title, isNow, sel) {
-  const week = ui.calMode === 'week';
+  const week = ui.calMode === 'week', year = ui.calMode === 'year';
+  const prev = year ? dt('Voriges Jahr', 'Previous year') : week ? 'Vorige Woche' : 'Voriger Monat';
+  const next = year ? dt('Nächstes Jahr', 'Next year') : week ? 'Nächste Woche' : 'Nächster Monat';
   return `
   <header class="head fade-in">
     <div><div class="eyebrow">${esc(title)}</div><h1>Kalender</h1></div>
     <div class="head-actions">
       <div class="segmented" aria-label="Ansicht">
-        <button class="${week ? '' : 'on'}" data-action="cal-mode" data-mode="month">Monat</button>
+        <button class="${year ? 'on' : ''}" data-action="cal-mode" data-mode="year">${dt('Jahr', 'Year')}</button>
+        <button class="${week || year ? '' : 'on'}" data-action="cal-mode" data-mode="month">Monat</button>
         <button class="${week ? 'on' : ''}" data-action="cal-mode" data-mode="week">Woche</button>
       </div>
       <div class="week-nav">
-        <button class="icon-btn" data-action="cal-month" data-dir="-1" aria-label="${week ? 'Vorige Woche' : 'Voriger Monat'}">${icon('chevron-left')}</button>
+        <button class="icon-btn" data-action="cal-month" data-dir="-1" aria-label="${prev}">${icon('chevron-left')}</button>
         <button class="btn small ${isNow ? 'ghost' : ''}" data-action="cal-month" data-dir="0">Heute</button>
-        <button class="icon-btn" data-action="cal-month" data-dir="1" aria-label="${week ? 'Nächste Woche' : 'Nächster Monat'}">${icon('chevron-right')}</button>
+        <button class="icon-btn" data-action="cal-month" data-dir="1" aria-label="${next}">${icon('chevron-right')}</button>
       </div>
       <button class="btn" data-action="cal-import">${icon('calendar-plus')}Kalender importieren</button>
       <button class="btn primary" data-action="cal-new" data-day="${sel}">${icon('plus')}Termin</button>
@@ -735,53 +814,93 @@ function afterRender(mode) {
 }
 document.addEventListener('scroll', (e) => { if (e.target.id === 'wk-scroll') ui.wkScroll = e.target.scrollTop; }, true);
 
-/* Ziehen: verschieben (15-Minuten-Schritte, auch auf andere Tage) und Länge ändern */
+/* Ziehen: verschieben (auch auf andere Tage) und Länge ändern. Die Box hebt sich schon beim Anfassen an und folgt der Maus
+   frei. Wo sie landet (in 15-Minuten-Schritten), zeigt ein gestrichelter Rahmen, der weich mitspringt. Beim Loslassen
+   gleitet die Box in diesen Rahmen. */
 let wkDrag = null;
+const wkSnap = (min) => Math.round(min / 15) * 15;
+
 document.addEventListener('pointerdown', (e) => {
   const el = e.target.closest('.wk-ev.movable');
-  if (!el || e.button !== 0) return;
+  if (!el || e.button !== 0 || wkDrag) return;
   e.preventDefault();
   const col = el.closest('.wk-col');
   const cols = [...document.querySelectorAll('.wk-col')];
   const colW = cols.length > 1 ? cols[1].getBoundingClientRect().left - cols[0].getBoundingClientRect().left : col.offsetWidth;
+  const mode = e.target.closest('.wk-resize') ? 'resize' : 'move';
   wkDrag = {
-    el, mode: e.target.closest('.wk-resize') ? 'resize' : 'move', x: e.clientX, y: e.clientY,
+    el, mode, x: e.clientX, y: e.clientY, col,
     s: Number(el.dataset.s), e: Number(el.dataset.e), di: Number(col.dataset.di), colW, moved: false, dMin: 0, dDay: 0,
   };
+  // Sofort beim Anfassen etwas größer werden
+  el.classList.add('grabbed');
+  if (mode === 'move') el.classList.add('lifted');
   try { el.setPointerCapture(e.pointerId); } catch { /* nicht jedes Zeigegerät unterstützt das */ }
 });
+
+function wkGhost(d) {
+  const g = document.createElement('div');
+  g.className = 'wk-snap';
+  g.style.cssText = `top:${d.el.style.top};height:${d.el.style.height};left:${d.el.style.left};width:${d.el.style.width};--c:${d.el.style.getPropertyValue('--c')}`;
+  d.col.appendChild(g);
+  return g;
+}
+
 document.addEventListener('pointermove', (e) => {
   const d = wkDrag;
-  if (!d) return;
+  if (!d || d.landing) return;
   const dx = e.clientX - d.x, dy = e.clientY - d.y;
-  if (!d.moved && Math.abs(dx) + Math.abs(dy) < 5) return;
-  d.moved = true;
-  d.el.classList.add('dragging');
-  let dMin = Math.round(((dy / HOUR_PX) * 60) / 15) * 15;
+  if (!d.moved && Math.abs(dx) + Math.abs(dy) < 4) return;
+  if (!d.moved) { d.moved = true; d.el.classList.add('dragging'); d.snap = wkGhost(d); }
   const timeEl = d.el.querySelector('.wk-ev-time');
   if (d.mode === 'move') {
-    dMin = Math.max(-d.s, Math.min(1440 - d.e, dMin));
-    d.dDay = Math.max(-d.di, Math.min(6 - d.di, Math.round(dx / d.colW)));
-    d.dMin = dMin;
-    d.el.style.transform = `translate(${d.dDay * d.colW}px, ${(dMin / 60) * HOUR_PX}px)`;
-    timeEl.textContent = `${minLabel(d.s + dMin)} – ${minLabel(d.e + dMin)}`;
+    // Frei mitgehen, nur an den Rändern der Woche und des Tages begrenzt
+    const fx = Math.max(-d.di * d.colW, Math.min((6 - d.di) * d.colW, dx));
+    const fy = Math.max((-d.s / 60) * HOUR_PX, Math.min(((1440 - d.e) / 60) * HOUR_PX, dy));
+    d.el.style.transform = `translate(${fx}px, ${fy}px)`;
+    const dMin = Math.max(-d.s, Math.min(1440 - d.e, wkSnap((fy / HOUR_PX) * 60)));
+    const dDay = Math.round(fx / d.colW);
+    if (dMin !== d.dMin || dDay !== d.dDay) {
+      d.dMin = dMin; d.dDay = dDay;
+      d.snap.style.transform = `translate(${dDay * d.colW}px, ${(dMin / 60) * HOUR_PX}px)`;
+      timeEl.textContent = `${minLabel(d.s + dMin)} – ${minLabel(d.e + dMin)}`;
+    }
   } else {
-    const ne = Math.max(d.s + 15, Math.min(1440, d.e + dMin));
-    d.dMin = ne - d.e;
-    d.el.style.height = `${Math.max(20, ((ne - d.s) / 60) * HOUR_PX - 2)}px`;
-    timeEl.textContent = `${minLabel(d.s)} – ${minLabel(ne)}`;
+    const rawEnd = Math.max(d.s + 15, Math.min(1440, d.e + (dy / HOUR_PX) * 60));
+    d.el.style.height = `${Math.max(20, ((rawEnd - d.s) / 60) * HOUR_PX - 2)}px`;
+    const ne = Math.max(d.s + 15, Math.min(1440, wkSnap(rawEnd)));
+    if (ne - d.e !== d.dMin) {
+      d.dMin = ne - d.e;
+      d.snap.style.height = `${Math.max(20, ((ne - d.s) / 60) * HOUR_PX - 2)}px`;
+      timeEl.textContent = `${minLabel(d.s)} – ${minLabel(ne)}`;
+    }
   }
 });
+
 document.addEventListener('pointerup', () => {
   const d = wkDrag;
-  if (!d) return;
-  wkDrag = null;
+  if (!d || d.landing) return;
   const { id, kind, day } = d.el.dataset;
   if (!d.moved) {
+    wkDrag = null;
+    d.el.classList.remove('lifted');
+    setTimeout(() => d.el.classList.remove('grabbed'), 250);
     if (kind === 'task') openTaskEditor(id);
     else { const ev = state.calEvents.find((x) => x.id === id); if (ev) openEventEditor(ev, day); }
     return;
   }
+  // In den Rahmen gleiten und dabei wieder auf normale Größe gehen, erst danach speichern und neu zeichnen
+  d.landing = true;
+  d.el.classList.remove('lifted');
+  d.el.classList.add('landing');
+  if (d.mode === 'move') d.el.style.transform = `translate(${d.dDay * d.colW}px, ${(d.dMin / 60) * HOUR_PX}px)`;
+  else d.el.style.height = d.snap.style.height;
+  d.snap.classList.add('gone');
+  setTimeout(() => wkCommit(d, id, kind, day), 330);
+});
+
+function wkCommit(d, id, kind, day) {
+  wkDrag = null;
   const newDay = addDays(day, d.dDay);
   if (kind === 'task') {
     const t = state.tasks.find((x) => x.id === id);
@@ -801,7 +920,7 @@ document.addEventListener('pointerup', () => {
     ? `Verschoben auf ${new Intl.DateTimeFormat(LOCALE(), { weekday: 'short', day: 'numeric', month: 'short' }).format(parseKey(newDay))}, ${minLabel(d.s + d.dMin)}`
     : `Neue Dauer bis ${minLabel(d.e + d.dMin)}`);
   render('update');
-});
+}
 
 // Klick auf eine freie Stelle der Zeitleiste: neuer Termin zur halben Stunde
 document.addEventListener('click', (e) => {
@@ -816,15 +935,28 @@ document.addEventListener('click', (e) => {
 
 function calendarAction(a, el) {
   switch (a) {
-    case 'cal-mode':
+    case 'cal-mode': {
+      const from = ui.calMode;
       ui.calMode = el.dataset.mode;
-      if (ui.calMode === 'week') ui.calWeek = mondayOf(ui.calDay || todayKey());
-      else ui.calMonth = (ui.calWeek || ui.calDay || todayKey()).slice(0, 7);
+      // Aus der Jahresansicht kommend: im gewählten Tag des Jahres weitermachen
+      const anchor = from === 'year' ? (ui.calDay && ui.calDay.startsWith(String(ui.calYear)) ? ui.calDay : `${ui.calYear}-01-01`)
+        : from === 'week' ? ui.calWeek : ui.calDay || (ui.calMonth ? `${ui.calMonth}-01` : null);
+      const k = anchor || todayKey();
+      if (ui.calMode === 'week') ui.calWeek = mondayOf(ui.calDay && from !== 'year' ? ui.calDay : k);
+      else if (ui.calMode === 'year') ui.calYear = Number(k.slice(0, 4));
+      else ui.calMonth = k.slice(0, 7);
       ui.wkScroll = undefined;
       render('enter');
       return true;
+    }
     case 'cal-month': {
       const dir = Number(el.dataset.dir);
+      if (ui.calMode === 'year') {
+        ui.calYear = dir === 0 ? new Date().getFullYear() : (ui.calYear || new Date().getFullYear()) + dir;
+        if (dir === 0) ui.calDay = todayKey();
+        render('enter');
+        return true;
+      }
       if (ui.calMode === 'week') {
         ui.calWeek = dir === 0 ? mondayOf(todayKey()) : addDays(ui.calWeek || mondayOf(todayKey()), dir * 7);
         if (dir === 0) ui.calDay = todayKey();
@@ -844,6 +976,23 @@ function calendarAction(a, el) {
       if (ui.calLastClick?.day === d && now - ui.calLastClick.t < 450) { ui.calLastClick = null; openEventEditor(null, d); return true; }
       ui.calLastClick = { day: d, t: now };
       if (ui.calDay !== d) { ui.calDay = d; render('update'); }
+      return true;
+    }
+    case 'cal-yday': {
+      // Klick wählt den Tag, ein zweiter Klick kurz danach öffnet seinen Monat
+      const d = el.dataset.day, now = Date.now();
+      if (ui.calLastClick?.day === d && now - ui.calLastClick.t < 450) {
+        ui.calLastClick = null; ui.calDay = d; ui.calMonth = d.slice(0, 7); ui.calMode = 'month'; render('enter'); return true;
+      }
+      ui.calLastClick = { day: d, t: now };
+      if (ui.calDay !== d) { ui.calDay = d; render('update'); }
+      return true;
+    }
+    case 'cal-ymonth': {
+      const m = el.dataset.month;
+      ui.calMonth = m; ui.calMode = 'month';
+      if (!(ui.calDay || '').startsWith(m)) ui.calDay = todayKey().startsWith(m) ? todayKey() : `${m}-01`;
+      render('enter');
       return true;
     }
     case 'cal-new': openEventEditor(null, el.dataset.day || ui.calDay || todayKey()); return true;

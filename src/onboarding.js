@@ -25,9 +25,9 @@ function renderOnboarding(first = false, dir = 1) {
   const lang = state.settings.lang || 'de';
   const steps = [
     `<div class="onb-art welcome">${BRAND_SVG}</div>
-     <div class="eyebrow">Willkommen bei Tageswerk</div>
+     <div class="eyebrow">Willkommen bei Habix</div>
      <h2 class="panel-title onb-title">Schön, dass du da bist.</h2>
-     <p class="onb-text">Tageswerk hilft dir, Gewohnheiten aufzubauen, Aufgaben im Blick zu behalten und deine Woche zu planen. Alles bleibt auf deinem PC.</p>
+     <p class="onb-text">Habix hilft dir, Gewohnheiten aufzubauen, Aufgaben im Blick zu behalten und deine Woche zu planen. Alles bleibt auf deinem PC.</p>
      <div class="onb-lang">
        <span>${icon('languages')}Sprache</span>
        <div class="segmented">
@@ -42,7 +42,7 @@ function renderOnboarding(first = false, dir = 1) {
        ${onbFeature('sun', 'Heute', 'Gewohnheiten abhaken oder Mengen eintragen, dazu deine Aufgaben und Termine des Tages')}
        ${onbFeature('list-todo', 'Aufgaben', 'Einmalige Dinge mit Fälligkeitsdatum, zum Beispiel „Steuer abgeben“')}
        ${onbFeature('activity', 'Statistiken', 'Sieh, wo du besser wirst und wo du nachlässt, mit Abzeichen für lange Serien')}
-       ${onbFeature('award', 'Level und Ränge', 'Für Gewohnheiten, Aufgaben und deine Stimmung sammelst du XP und steigst vom Lehrling zur Legende auf')}
+       ${onbFeature('award', 'Level und Ränge', 'Für Gewohnheiten, Aufgaben und deine Stimmung sammelst du XP und steigst vom Rookie bis zum GOAT auf')}
      </ul>`,
     `<div class="onb-art icons"><span style="--c:var(--cyan)">${icon('calendar-days')}</span><span style="--c:var(--good)">${icon('briefcase')}</span><span style="--c:var(--violet)">${icon('wallet')}</span></div>
      <div class="eyebrow">Schritt 2 von 3</div>
