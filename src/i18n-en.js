@@ -185,7 +185,7 @@ const I18N_EN = {
 
   // Einführung
   'Schön, dass du da bist.': 'Great to have you here.', 'Überspringen': 'Skip',
-  'Habix hilft dir, Gewohnheiten aufzubauen, Aufgaben im Blick zu behalten und deine Woche zu planen. Alles bleibt auf deinem PC.': 'Habix helps you build habits, keep track of tasks and plan your week. Everything stays on your PC.',
+  'Habix hilft dir, Gewohnheiten aufzubauen, Aufgaben im Blick zu behalten und deine Woche zu planen. Alles bleibt auf deinem Rechner.': 'Habix helps you build habits, keep track of tasks and plan your week. Everything stays on your PC.',
   'Jeden Tag ein Stück weiter': 'A little further every day', 'Gewohnheiten abhaken oder Mengen eintragen, dazu deine Aufgaben und Termine des Tages': "Tick off habits or enter amounts, plus your tasks and events of the day",
   'Einmalige Dinge mit Fälligkeitsdatum, zum Beispiel „Steuer abgeben“': 'One-off things with a due date, for example “File taxes”',
   'Sieh, wo du besser wirst und wo du nachlässt, mit Abzeichen für lange Serien': 'See where you improve and where you slip, with badges for long streaks',

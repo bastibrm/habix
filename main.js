@@ -361,7 +361,9 @@ ipcMain.handle('window:show', () => showWindow());
 
 ipcMain.handle('settings:apply', (_e, s) => {
   const autostartChanged = s.autostart !== undefined && s.autostart !== settings.autostart;
+  const langChanged = s.lang && s.lang !== settings.lang;
   settings = { ...settings, ...s };
+  if (isMac && langChanged) setMacMenu();
   updateTray();
   if (autostartChanged) applyAutostart(settings.autostart);
   return true;
@@ -463,9 +465,9 @@ nativeTheme.on('updated', () => {
 function setMacMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate([
     { role: 'appMenu' },
-    { role: 'editMenu' },
+    { role: 'editMenu', label: settings.lang === 'en' ? 'Edit' : 'Bearbeiten' },
     { label: settings.lang === 'en' ? 'View' : 'Darstellung', submenu: [{ role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { type: 'separator' }, { role: 'togglefullscreen' }] },
-    { role: 'windowMenu' },
+    { role: 'windowMenu', label: settings.lang === 'en' ? 'Window' : 'Fenster' },
   ]));
 }
 

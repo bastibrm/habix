@@ -27,7 +27,7 @@ function renderOnboarding(first = false, dir = 1) {
     `<div class="onb-art welcome">${BRAND_SVG}</div>
      <div class="eyebrow">Willkommen bei Habix</div>
      <h2 class="panel-title onb-title">Schön, dass du da bist.</h2>
-     <p class="onb-text">Habix hilft dir, Gewohnheiten aufzubauen, Aufgaben im Blick zu behalten und deine Woche zu planen. Alles bleibt auf deinem PC.</p>
+     <p class="onb-text">Habix hilft dir, Gewohnheiten aufzubauen, Aufgaben im Blick zu behalten und deine Woche zu planen. Alles bleibt auf deinem Rechner.</p>
      <div class="onb-lang">
        <span>${icon('languages')}Sprache</span>
        <div class="segmented">
