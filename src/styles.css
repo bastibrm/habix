@@ -1783,3 +1783,7 @@ body.dash-dragging, body.dash-dragging * { cursor: grabbing !important; }
 .yr-bar.now small { color: var(--fg); }
 @media (max-width: 1180px) { .year-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 760px) { .year-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Mac: runde Fensterknöpfe oben links, keine Windows-Knöpfe oben rechts */
+html.is-mac .brand { height: 84px; padding-top: 38px; }
+html.is-mac .title-actions { right: 22px; }

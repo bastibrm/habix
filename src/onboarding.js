@@ -51,7 +51,7 @@ function renderOnboarding(first = false, dir = 1) {
        ${onbFeature('calendar-days', 'Kalender', 'Termine in Monats- und Wochenansicht, Google, Outlook oder Apple importieren')}
        ${onbFeature('briefcase', 'Arbeit', 'Stundenplan und Stempeluhr. Schalte den Bereich in der Seitenleiste frei, wenn du ihn brauchst.')}
        ${onbFeature('wallet', 'Finanzen', 'Kontoauszug als CSV hochladen: Ausgaben nach Kategorien, Abos und Budgets. Auch diesen Bereich schaltest du erst frei.')}
-       ${onbFeature('bell', 'Erinnerungen', 'Windows meldet sich vor Terminen und abends, wenn noch etwas offen ist')}
+       ${onbFeature('bell', 'Erinnerungen', window.api?.platform === 'darwin' ? dt('Dein Mac meldet sich vor Terminen und abends, wenn noch etwas offen ist', 'Your Mac notifies you before events and in the evening if something is still open') : 'Windows meldet sich vor Terminen und abends, wenn noch etwas offen ist')}
      </ul>`,
     `<div class="onb-art icons"><span style="--c:var(--sun)">${icon('rocket')}</span></div>
      <div class="eyebrow">Schritt 3 von 3</div>

@@ -1,5 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+// Auf dem Mac sitzen die Fensterknöpfe links; die Oberfläche macht dort Platz
+if (process.platform === 'darwin') window.addEventListener('DOMContentLoaded', () => document.documentElement.classList.add('is-mac'));
+
 contextBridge.exposeInMainWorld('api', {
   load: () => ipcRenderer.invoke('data:load'),
   save: (data) => ipcRenderer.invoke('data:save', data),
@@ -13,6 +16,7 @@ contextBridge.exposeInMainWorld('api', {
   backupImport: () => ipcRenderer.invoke('backup:import'),
   backupAuto: (data) => ipcRenderer.invoke('backup:auto', data),
   backupFolder: () => ipcRenderer.invoke('backup:folder'),
+  platform: process.platform,
   updateGet: () => ipcRenderer.invoke('update:get'),
   updateCheck: () => ipcRenderer.invoke('update:check'),
   updateInstall: () => ipcRenderer.invoke('update:install'),

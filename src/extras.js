@@ -331,6 +331,9 @@ function checkReminders() {
   }
 }
 
+// Auf dem Mac heißen manche Dinge anders (Menüleiste statt Taskleiste)
+const onMac = () => window.api?.platform === 'darwin';
+
 /* ================= Taskleisten-Symbol ================= */
 
 let lastTray = '';
@@ -374,9 +377,9 @@ function viewSettings() {
   <section class="settings-cols">
    <div class="settings-col">
     <article class="card s12 fade-in">
-      <div class="card-head"><div><h2>Darstellung</h2><div class="sub">Hell, dunkel oder automatisch wie in Windows eingestellt</div></div><div class="icon-btn">${icon('palette')}</div></div>
+      <div class="card-head"><div><h2>Darstellung</h2><div class="sub">${onMac() ? dt('Hell, dunkel oder automatisch wie auf dem Mac eingestellt', 'Light, dark or automatic like your Mac') : 'Hell, dunkel oder automatisch wie in Windows eingestellt'}</div></div><div class="icon-btn">${icon('palette')}</div></div>
       <div class="theme-options" role="radiogroup" aria-label="Darstellung">
-        ${[['light', 'Hell', 'sun-medium'], ['system', 'Wie Windows', 'monitor'], ['dark', 'Dunkel', 'moon']].map(([mode, label, ic]) => `
+        ${[['light', 'Hell', 'sun-medium'], ['system', onMac() ? dt('Wie der Mac', 'Like macOS') : 'Wie Windows', 'monitor'], ['dark', 'Dunkel', 'moon']].map(([mode, label, ic]) => `
         <button class="theme-option ${(state.theme || 'system') === mode ? 'on' : ''}" data-theme-mode="${mode}" role="radio" aria-checked="${(state.theme || 'system') === mode}">
           <span class="theme-preview tp-${mode}" aria-hidden="true"><span class="tp-side"></span><span class="tp-main"><i></i><i></i><i></i></span></span>
           <span class="theme-label">${icon(ic)}${label}</span>
@@ -427,7 +430,7 @@ function viewSettings() {
    </div>
    <div class="settings-col">
     <article class="card s6 fade-in">
-      <div class="card-head"><div><h2>Erinnerungen</h2><div class="sub">Windows-Benachrichtigungen, auch wenn die App im Hintergrund läuft</div></div><div class="icon-btn">${icon('bell')}</div></div>
+      <div class="card-head"><div><h2>Erinnerungen</h2><div class="sub">${onMac() ? dt('Mac-Mitteilungen, auch wenn die App im Hintergrund läuft', 'Mac notifications, even when the app runs in the background') : 'Windows-Benachrichtigungen, auch wenn die App im Hintergrund läuft'}</div></div><div class="icon-btn">${icon('bell')}</div></div>
       <div class="settings-list">
         ${sw('remindHabits', 'Offene Gewohnheiten', 'Abends erinnern, wenn noch etwas offen ist')}
         <label class="setting sub-setting ${s.remindHabits ? '' : 'off'}" for="set-remindHabitsAt"><div><b>Uhrzeit</b></div><input type="time" class="input small-input" data-setting="remindHabitsAt" id="set-remindHabitsAt" value="${esc(s.remindHabitsAt)}"></label>
@@ -445,12 +448,12 @@ function viewSettings() {
    <div class="settings-col">
     ${timezoneCard()}
     <article class="card s6 fade-in">
-      <div class="card-head"><div><h2>Start und Taskleiste</h2><div class="sub">Stempeln über das Symbol unten rechts, ohne das Fenster zu öffnen</div></div><div class="icon-btn">${icon('monitor')}</div></div>
+      <div class="card-head"><div><h2>${onMac() ? dt('Start und Menüleiste', 'Startup and menu bar') : 'Start und Taskleiste'}</h2><div class="sub">${onMac() ? dt('Stempeln über das Symbol oben in der Menüleiste, ohne das Fenster zu öffnen', 'Clock in from the menu bar icon without opening the window') : 'Stempeln über das Symbol unten rechts, ohne das Fenster zu öffnen'}</div></div><div class="icon-btn">${icon('monitor')}</div></div>
       ${desktop ? `<div class="settings-list">
-        ${sw('autostart', 'Mit Windows starten', 'Startet unsichtbar im Hintergrund, das Symbol erscheint unten rechts')}
-        ${sw('closeToTray', 'Beim Schließen weiterlaufen', 'Das X versteckt die App nur. Beenden geht über das Symbol unten rechts.')}
+        ${onMac() ? sw('autostart', dt('Beim Anmelden starten', 'Open at login'), dt('Habix startet mit dem Mac, das Symbol erscheint oben in der Menüleiste', 'Habix starts with your Mac, the icon appears in the menu bar')) : sw('autostart', 'Mit Windows starten', 'Startet unsichtbar im Hintergrund, das Symbol erscheint unten rechts')}
+        ${onMac() ? sw('closeToTray', dt('Beim Schließen weiterlaufen', 'Keep running when closed'), dt('Der rote Knopf versteckt die App nur. Beenden mit ⌘Q oder über das Symbol in der Menüleiste.', 'The red button only hides the app. Quit with ⌘Q or from the menu bar icon.')) : sw('closeToTray', 'Beim Schließen weiterlaufen', 'Das X versteckt die App nur. Beenden geht über das Symbol unten rechts.')}
       </div>
-      <div class="setting-note">${icon('info')}<span>Ein Klick auf das Symbol unten rechts öffnet Habix, ein Rechtsklick zeigt Einstempeln, Pause und Ausstempeln.</span></div>`
+      <div class="setting-note">${icon('info')}<span>${onMac() ? dt('Ein Klick auf das Symbol oben in der Menüleiste zeigt Einstempeln, Pause, Ausstempeln und „Habix öffnen“.', 'Clicking the menu bar icon shows clock in, break, clock out and “Open Habix”.') : 'Ein Klick auf das Symbol unten rechts öffnet Habix, ein Rechtsklick zeigt Einstempeln, Pause und Ausstempeln.'}</span></div>`
       : '<div class="muted">Nur in der Desktop-App verfügbar.</div>'}
     </article>
     ${updatesCard()}
@@ -484,7 +487,7 @@ function openWorkUnlock() {
       <p>Für alle, die Schichten planen und ihre Arbeitszeit erfassen wollen. Wenn du das nicht brauchst, bleibt der Bereich einfach aus.</p>
       <ul class="unlock-list">
         <li>${icon('calendar-clock')}<div><b>Stundenplan</b><span>Deine Woche in halben Stunden planen</span></div></li>
-        <li>${icon('timer')}<div><b>Ein- und Ausstempeln</b><span>Oben rechts und über das Symbol in der Taskleiste, mit Pausen</span></div></li>
+        <li>${icon('timer')}<div><b>Ein- und Ausstempeln</b><span>${onMac() ? dt('Oben rechts und über das Symbol in der Menüleiste, mit Pausen', 'Top right and from the menu bar icon, with breaks') : 'Oben rechts und über das Symbol in der Taskleiste, mit Pausen'}</span></div></li>
         <li>${icon('bell')}<div><b>Erinnerungen</b><span>Vor Schichtbeginn und wenn du das Ausstempeln vergisst</span></div></li>
         <li>${icon('chart-column')}<div><b>Auswertung</b><span>Grün heißt gearbeitet, rot heißt verpasst, dazu deine Bilanz</span></div></li>
       </ul>
@@ -593,6 +596,9 @@ function updatesCard() {
         <button class="btn primary" data-action="update-install">${icon('rotate-cw')}Jetzt neu starten und aktualisieren</button></div>
         <div class="sub" style="margin:0">Sonst wird das Update automatisch installiert, wenn du die App das nächste Mal beendest.</div>`,
       error: `<div class="update-row"><span class="update-state bad">${icon('triangle-alert')}Die Suche nach Updates hat nicht geklappt. Prüf deine Internetverbindung.</span>${check}</div>`,
+      available: `<div class="update-row"><span class="update-state ok">${icon('gift')}${dt(`Version ${esc(u.version || '')} ist da.`, `Version ${esc(u.version || '')} is available.`)}</span>
+        <a class="btn primary" href="${esc(u.url || 'https://habix.pro')}" target="_blank" rel="noopener">${icon('download')}${dt('Herunterladen', 'Download')}</a></div>
+        <div class="sub" style="margin:0">${dt('Auf dem Mac lädst du neue Versionen selbst herunter und ziehst sie in den Programme-Ordner. Deine Daten bleiben erhalten.', 'On a Mac you download new versions yourself and drag them into Applications. Your data stays.')}</div>`,
     }[u.status] || '';
   }
   return `
@@ -603,13 +609,14 @@ function updatesCard() {
 }
 
 function updateNavDot() {
-  document.getElementById('nav-settings')?.classList.toggle('has-dot', ui.update?.status === 'ready');
+  document.getElementById('nav-settings')?.classList.toggle('has-dot', ui.update?.status === 'ready' || ui.update?.status === 'available');
 }
 
 window.api?.onUpdate?.((s) => {
   const was = ui.update?.status;
   ui.update = { ...(ui.update || {}), ...s };
   if (s.status === 'ready' && was !== 'ready') toast(`Update ${s.version} ist bereit. In den Einstellungen mit einem Klick installieren.`);
+  if (s.status === 'available' && was !== 'available') toast(dt(`Version ${s.version} ist da. Den Download findest du in den Einstellungen.`, `Version ${s.version} is available. You'll find the download in Settings.`));
   updateNavDot();
   if (ui.view === 'settings' && !ui.modal) render('update');
 });

@@ -1,0 +1,57 @@
+# Baut Habix für den Mac (Apple-Chip und Intel) auf einem Mac-Rechner von GitHub.
+# Ohne Apple-Entwicklerkonto: die App ist nur ad hoc signiert, beim ersten Öffnen muss man sie einmal freigeben.
+# - Push auf den Zweig „mac“: Testbuild mit Bildschirmfoto als Download im Lauf
+# - Veröffentlichtes Release: die .dmg-Dateien kommen automatisch ins Release
+name: Mac-Version
+
+on:
+  push:
+    branches: [mac]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Abhängigkeiten
+        run: npm ci
+
+      - name: Mac-App bauen
+        run: npx electron-builder --mac --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Kurz starten und Bildschirmfoto machen
+        run: |
+          open dist/mac-arm64/Habix.app
+          sleep 15
+          screencapture -x habix-mac.png
+          pgrep -x Habix && echo "Habix läuft" || (echo "Habix ist abgestürzt" && exit 1)
+
+      - name: Ergebnis aufheben
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: habix-mac
+          path: |
+            dist/*.dmg
+            habix-mac.png
+          retention-days: 7
+
+      - name: In das Release hochladen
+        if: github.event_name == 'release'
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/*.dmg --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}

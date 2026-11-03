@@ -50,6 +50,7 @@ function migrateFromTageswerk() {
 const backupDir = () => path.join(app.getPath('userData'), 'backups');
 const asset = (name) => path.join(__dirname, 'assets', name);
 const startHidden = process.argv.includes('--hidden');
+const isMac = process.platform === 'darwin';
 try { migrateFromTageswerk(); } catch { /* ohne alte Daten einfach weiter */ }
 
 // Zeitzone: muss vor dem ersten Fenster gesetzt sein, eine Änderung braucht deshalb einen Neustart
@@ -74,7 +75,7 @@ let updateState = { status: 'idle', version: null, progress: 0, error: null };
 // Nur eine Instanz: ein zweiter Start holt das vorhandene Fenster nach vorn
 if (!app.requestSingleInstanceLock()) app.quit();
 app.on('second-instance', () => showWindow());
-app.setAppUserModelId('Habix');
+if (process.platform === 'win32') app.setAppUserModelId('Habix');
 
 // Fensterknöpfe oben rechts: durchsichtig, Symbolfarbe passend zum Theme
 function overlayColors() {
@@ -93,9 +94,9 @@ function createWindow() {
     icon: asset('icon.png'),
     show: false,
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#141517' : '#eef0f2',
-    titleBarStyle: 'hidden',
-    titleBarOverlay: overlayColors(),
-    autoHideMenuBar: true,
+    ...(isMac
+      ? { titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 18, y: 18 } }
+      : { titleBarStyle: 'hidden', titleBarOverlay: overlayColors(), autoHideMenuBar: true }),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -151,11 +152,19 @@ function sendTray(action) {
   win?.webContents.send('tray:action', action);
 }
 
+function trayImage(name) {
+  if (!isMac) return nativeImage.createFromPath(asset(name));
+  // Ohne Stempeln: einfarbiges Vorlagenbild; eingestempelt bleibt der farbige Punkt sichtbar
+  const img = nativeImage.createFromPath(asset(name === 'tray.png' ? 'trayTemplate.png' : name.replace('.png', '-mac.png')));
+  if (name === 'tray.png') img.setTemplateImage(true);
+  return img;
+}
+
 function updateTray() {
   if (!tray) return;
   const s = trayStatus;
   const img = s.clocked ? (s.paused ? 'tray-pause.png' : 'tray-active.png') : 'tray.png';
-  tray.setImage(nativeImage.createFromPath(asset(img)));
+  tray.setImage(trayImage(img));
   const en = settings.lang === 'en';
   const statusLine = s.clocked
     ? (s.paused ? (en ? `On a break · clocked in since ${s.since}` : `Pause · seit ${s.since} Uhr eingestempelt`) : (en ? `Clocked in since ${s.since}` : `Eingestempelt seit ${s.since} Uhr`))
@@ -166,6 +175,7 @@ function updateTray() {
     { label: s.open ? (en ? `${s.open} ${s.open === 1 ? 'habit' : 'habits'} left` : `${s.open} ${s.open === 1 ? 'Gewohnheit' : 'Gewohnheiten'} offen`) : L('Alle Gewohnheiten erledigt'), enabled: false },
     { type: 'separator' },
     ...(updateState.status === 'ready' ? [{ label: en ? `Install update ${updateState.version}` : `Update auf ${updateState.version} installieren`, click: installUpdate }, { type: 'separator' }] : []),
+    ...(updateState.status === 'available' ? [{ label: en ? `Download version ${updateState.version}` : `Version ${updateState.version} herunterladen`, click: () => shell.openExternal(updateState.url) }, { type: 'separator' }] : []),
     ...(s.work ? [{ label: L(s.clocked ? 'Ausstempeln' : 'Einstempeln'), click: () => sendTray('clock') }] : []),
     ...(s.work && s.clocked ? [{ label: L(s.paused ? 'Pause beenden' : 'Pause machen'), click: () => sendTray('pause') }] : []),
     { type: 'separator' },
@@ -175,8 +185,9 @@ function updateTray() {
 }
 
 function createTray() {
-  tray = new Tray(nativeImage.createFromPath(asset('tray.png')));
-  tray.on('click', showWindow);
+  tray = new Tray(trayImage('tray.png'));
+  // Auf dem Mac öffnet ein Klick das Menü, unter Windows holt er das Fenster
+  if (!isMac) tray.on('click', showWindow);
   updateTray();
 }
 
@@ -196,7 +207,29 @@ function updatesConfigured() {
 
 function checkForUpdates() {
   if (!updatesConfigured()) return;
+  if (isMac) { checkMacRelease(); return; }
   autoUpdater.checkForUpdates().catch((e) => sendUpdate({ status: 'error', error: String(e?.message || e).split('\n')[0] }));
+}
+
+// Mac: neueste Version bei GitHub nachsehen und nur Bescheid geben (automatisch installieren geht nur mit Apple-Signatur)
+const newer = (a, b) => {
+  const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
+  for (let i = 0; i < 3; i++) if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) > (pb[i] || 0);
+  return false;
+};
+async function checkMacRelease() {
+  sendUpdate({ status: 'checking', error: null });
+  try {
+    const { owner, repo } = require('./package.json').build.publish[0];
+    const r = await net.fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`, { headers: { Accept: 'application/vnd.github+json' } });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const rel = await r.json();
+    const v = String(rel.tag_name || '').replace(/^v/, '');
+    if (v && newer(v, app.getVersion())) sendUpdate({ status: 'available', version: v, url: 'https://habix.pro' });
+    else sendUpdate({ status: 'latest', checkedAt: Date.now() });
+  } catch (e) {
+    sendUpdate({ status: 'error', error: String(e?.message || e).split('\n')[0] });
+  }
 }
 
 function installUpdate() {
@@ -206,6 +239,11 @@ function installUpdate() {
 
 function setupUpdater() {
   if (!updatesConfigured()) return; // in der Entwicklung und vor der ersten Veröffentlichung gibt es nichts zu aktualisieren
+  if (isMac) {
+    setTimeout(checkForUpdates, 8000);
+    setInterval(checkForUpdates, 6 * 60 * 60 * 1000);
+    return;
+  }
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.on('checking-for-update', () => sendUpdate({ status: 'checking', error: null }));
@@ -222,6 +260,7 @@ function setupUpdater() {
 
 function applyAutostart(on) {
   // In der Entwicklung startet electron.exe mit dem App-Ordner, in der fertigen .exe direkt
+  if (isMac) { app.setLoginItemSettings({ openAtLogin: !!on }); return; }
   const args = app.isPackaged ? ['--hidden'] : [app.getAppPath(), '--hidden'];
   app.setLoginItemSettings({ openAtLogin: !!on, path: process.execPath, args });
   // Die App hieß früher Tageswerk: deren Eintrag zeigt nach dem Update auf eine gelöschte .exe und wird entfernt
@@ -415,15 +454,28 @@ ipcMain.handle('backup:folder', () => {
 
 nativeTheme.on('updated', () => {
   if (win && !win.isDestroyed()) {
-    win.setTitleBarOverlay(overlayColors());
+    if (!isMac) win.setTitleBarOverlay(overlayColors());
     win.setBackgroundColor(nativeTheme.shouldUseDarkColors ? '#141517' : '#eef0f2');
   }
 });
 
+// Auf dem Mac braucht die App ein Menü, sonst gehen ⌘C, ⌘V, ⌘A und ⌘Q nicht
+function setMacMenu() {
+  Menu.setApplicationMenu(Menu.buildFromTemplate([
+    { role: 'appMenu' },
+    { role: 'editMenu' },
+    { label: settings.lang === 'en' ? 'View' : 'Darstellung', submenu: [{ role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { type: 'separator' }, { role: 'togglefullscreen' }] },
+    { role: 'windowMenu' },
+  ]));
+}
+
 app.whenReady().then(() => {
+  if (isMac) setMacMenu();
   createWindow();
   createTray();
   setupUpdater();
 });
 app.on('before-quit', () => { quitting = true; });
 app.on('window-all-closed', () => app.quit());
+// Klick auf das Dock-Symbol holt das versteckte Fenster zurück
+app.on('activate', () => showWindow());
