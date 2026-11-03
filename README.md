@@ -4,13 +4,15 @@ Kleine Schritte. Jeden Tag.
 
 **Webseite und Download:** https://habix.pro
 
-Habix ist eine kostenlose Desktop-App für Windows: Gewohnheiten, Aufgaben, Kalender, Statistiken und Level an einem Ort. Wer möchte, schaltet zusätzlich Stundenplan mit Stempeluhr und einen Finanzbereich frei. Alle Daten bleiben lokal auf deinem PC.
+Habix ist eine kostenlose Desktop-App für Windows und Mac: Gewohnheiten, Aufgaben, Kalender, Statistiken und Level an einem Ort. Wer möchte, schaltet zusätzlich Stundenplan mit Stempeluhr und einen Finanzbereich frei. Alle Daten bleiben lokal auf deinem Rechner.
 
 ## Download
 
 Die neueste Version gibt es unter [Releases](https://github.com/bastibrm/habix/releases/latest): `Habix-Setup-x.y.z.exe` herunterladen und starten. Updates installiert die App danach selbst.
 
 Windows zeigt beim ersten Start eventuell „Der Computer wurde durch Windows geschützt“, weil die Datei nicht signiert ist. Über „Weitere Informationen“ → „Trotzdem ausführen“ geht es weiter.
+
+**Mac:** `Habix-x.y.z-arm64.dmg` (Apple-Chip) oder `Habix-x.y.z-x64.dmg` (Intel) laden, Habix in „Programme“ ziehen. Beim ersten Öffnen warnt macOS, weil Habix nicht bei Apple registriert ist: unter Systemeinstellungen → Datenschutz & Sicherheit auf „Dennoch öffnen“ klicken. Auf dem Mac meldet Habix neue Versionen, installiert sie aber nicht selbst. Benötigt macOS 12 oder neuer.
 
 ## Funktionen
 
