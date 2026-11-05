@@ -2,7 +2,7 @@
 
 /* Level und Ränge. XP werden immer aus den gespeicherten Daten berechnet, damit nichts doppelt zählt
    (z. B. durch An- und Abhaken). Ein Aufstieg wird einmal gefeiert und in state.levelSeen und state.rankSeen gemerkt.
-   Arbeit und Finanzen zählen bewusst nicht mit.
+   Arbeit und Finanzen zählen bewusst nicht mit, Fitness schon (Trainings, Cardio, Ernährung und Erfolge).
    Für jeden Rang braucht es zwei Dinge: das Level und eine bestandene Rangprüfung (z. B. 5 perfekte Tage am Stück).
    Dazu gibt es jede Woche eine Wochenaufgabe mit Bonus-XP. */
 
@@ -87,8 +87,8 @@ const rankOf = (level) => RANKS[rankIndexOf(level, computeXp().stats)];
 let xpCache = null;
 function computeXp() {
   if (xpCache) return xpCache;
-  const parts = { habits: 0, perfect: 0, badges: 0, tasks: 0, mood: 0, weekly: 0 };
-  const stats = { perfect: 0, run: 0, streak: 0, tasks: 0 };
+  const parts = { habits: 0, perfect: 0, badges: 0, tasks: 0, mood: 0, weekly: 0, fitness: 0 };
+  const stats = { perfect: 0, run: 0, streak: 0, tasks: 0, challenges: 0, chWeeks: 0 };
   const today = todayKey();
   // Gewohnheiten (abgehakt oder Menge erreicht)
   for (const h of state.habits) {
@@ -107,11 +107,16 @@ function computeXp() {
       else if (r !== null && k !== today) run = 0;
     }
     // Wochenaufgaben aller Wochen seit Beginn
-    for (let m = mondayOf(first); m <= today; m = addDays(m, 7)) { const w = weeklyProgress(m); if (w.done) parts.weekly += w.xp; }
+    const chFrom = typeof chStart === 'function' ? chStart() : '9999';
+    for (let m = mondayOf(first); m <= today; m = addDays(m, 7)) {
+      if (m >= chFrom) { const c = challengeWeek(m); parts.weekly += c.xp; stats.challenges += c.done; if (c.all) stats.chWeeks++; continue; }
+      const w = weeklyProgress(m); if (w.done) parts.weekly += w.xp;
+    }
   }
   // Aufgaben und Stimmung
   for (const t of state.tasks) if (t.done) { parts.tasks += XP.task + (t.prio ? XP.taskPrio : 0); stats.tasks++; }
   for (const k of Object.keys(state.journal)) if (state.journal[k].mood) parts.mood += XP.mood;
+  if (typeof fitnessXp === 'function') parts.fitness = fitnessXp();
   const total = Object.values(parts).reduce((a, b) => a + b, 0);
   const lv = levelFromXp(total);
   const ri = rankIndexOf(lv.level, stats);
@@ -129,33 +134,44 @@ function renderLevelCard() {
   const x = computeXp();
   const rank = x.rank;
   const share = x.into / x.need;
-  el.style.setProperty('--r', rank.color);
+  const cos = typeof cosmeticNow === 'function' ? cosmeticNow() : { color: null, title: null };
+  el.style.setProperty('--r', cos.color?.color || rank.color);
+  el.classList.toggle('cos-rainbow', cos.color?.id === 'rainbow');
   el.style.setProperty('--deg', `${Math.round(share * 360)}deg`);
-  el.title = `${rankName(rank)} · Level ${x.level} · ${x.into} / ${x.need} XP`;
+  // Ist Fitness an, stehen oben zwei Level: dieses heißt dann „Gesamt“, damit man sie auseinanderhält
+  const fitOn = !!state.fitness?.enabled;
+  el.title = `${fitOn ? `${dt('Gesamt-Level', 'Overall level')}: ` : ''}${rankName(rank)}${cos.title ? ` · ${dt(`„${cosName(cos.title)}“`, `“${cosName(cos.title)}”`)}` : ''} · Level ${x.level} · ${x.into} / ${x.need} XP`;
   el.setAttribute('aria-label', el.title);
   // Inhalt nur beim Rangwechsel neu bauen, damit das Symbol nicht flackert
-  const key = `${rank.name}|${state.settings?.lang}`;
+  const key = `${rank.name}|${state.settings?.lang}|${fitOn}|${cos.title?.id || ''}`;
   if (el.dataset.rank !== key) {
     el.dataset.rank = key;
     el.innerHTML = `
       <span class="lv-ring"><span class="lv-ico">${icon(rank.icon)}</span></span>
-      <span class="lv-txt"><b id="lv-level"></b><small>${rankName(rank)}</small></span>
+      ${fitOn ? `<span class="lv-tag">${icon('sparkles')}${dt('Gesamt', 'Overall')}</span>` : ''}
+      <span class="lv-txt"><b id="lv-level"></b><small>${cos.title ? esc(cosName(cos.title)) : rankName(rank)}</small></span>
       <span class="lv-xp" id="lv-xp"></span>`;
     lucide.createIcons();
   }
   document.getElementById('lv-level').textContent = `Level ${x.level}`;
   document.getElementById('lv-xp').textContent = `${x.into} / ${x.need} XP`;
+  if (typeof renderFitLevelPill === 'function') renderFitLevelPill();
+  if (typeof layoutThought === 'function') requestAnimationFrame(() => layoutThought(undefined, true));
 }
 
 // Nach jeder Änderung: neu rechnen, Seitenleiste aktualisieren, Aufstieg feiern
 let levelTimer = null;
 function onDataChanged() {
   xpCache = null;
+  if (typeof fitLvCache !== 'undefined') fitLvCache = null;
   clearTimeout(levelTimer);
   levelTimer = setTimeout(checkLevelUp, 350);
 }
 
 function checkLevelUp() {
+  if (typeof fitAchCheck === 'function') fitAchCheck();
+  if (typeof fitLevelCheck === 'function') fitLevelCheck();
+  if (typeof rewardsCheck === 'function') rewardsCheck();
   const x = computeXp();
   renderLevelCard();
   // Erster Start (oder erstes Mal mit Rangprüfungen): still übernehmen
@@ -199,21 +215,8 @@ function xpPop(el, amount) {
   setTimeout(() => p.remove(), 1100);
 }
 
-// Wochenaufgabe als kleiner Block (Level-Fenster und Startseite)
-function weeklyBlock(compact = false) {
-  const w = weeklyProgress(mondayOf(todayKey()));
-  const left = 6 - wdOf(todayKey());
-  return `
-  <div class="weekly ${w.done ? 'done' : ''} ${compact ? 'compact' : ''}" title="${dt(w.de, w.en)} · +${w.xp} XP">
-    <span class="weekly-ico">${icon(w.done ? 'check' : 'target')}</span>
-    <div class="weekly-text">
-      <small>${dt('Wochenaufgabe', 'Weekly challenge')}${compact ? '' : ` · +${w.xp} XP`}</small>
-      <b>${dt(w.de, w.en)}</b>
-      <div class="meter"><span data-anim="w" style="width:${(w.have / w.need) * 100}%"></span></div>
-    </div>
-    <em>${w.done ? dt('Geschafft', 'Done') : `${w.have} / ${w.need}`}${!w.done && !compact ? `<small>${left ? dt(`noch ${left} ${left === 1 ? 'Tag' : 'Tage'}`, `${left} ${left === 1 ? 'day' : 'days'} left`) : dt('letzter Tag', 'last day')}</small>` : ''}</em>
-  </div>`;
-}
+// Wochen-Challenges als Block (Level-Fenster, Startseite); der Code dazu steht in rewards.js
+const weeklyBlock = (compact = false) => challengesBlock(compact);
 
 function openLevelPanel() {
   const x = computeXp();
@@ -222,9 +225,10 @@ function openLevelPanel() {
     ['list-checks', 'Gewohnheit erledigt', `+${XP.habit}`, x.parts.habits],
     ['flame', 'Perfekter Tag', `+${XP.perfect}`, x.parts.perfect],
     ['award', 'Abzeichen (7 bis 365 Tage)', '+50 bis +1500', x.parts.badges],
-    ['target', dt('Wochenaufgabe', 'Weekly challenge'), '+40 bis +70', x.parts.weekly],
+    ['swords', dt('Wochen-Challenges', 'Weekly challenges'), dt('+30 bis +80', '+30 to +80'), x.parts.weekly],
     ['list-todo', 'Aufgabe erledigt', `+${XP.task}, wichtig +${XP.task + XP.taskPrio}`, x.parts.tasks],
     ['smile', 'Stimmung eingetragen', `+${XP.mood}`, x.parts.mood],
+    ...(state.fitness?.enabled ? [['dumbbell', 'Fitness: Training, Cardio, Erfolge', '+2 bis +400', x.parts.fitness]] : []),
   ];
   const trialLine = (r) => {
     if (!r.trial) return '';
@@ -241,12 +245,13 @@ function openLevelPanel() {
   openPanel(`
     <div class="card-head">
       <div><div class="eyebrow">Dein Fortschritt</div><h2 class="panel-title" style="font-size:22px">Level und Rang</h2></div>
-      <button class="icon-btn" data-action="close-modal" aria-label="Schließen">${icon('x')}</button>
+      <div class="btn-row"><button class="btn small" data-action="showcase-open">${icon('gem')}${dt('Vitrine', 'Showcase')}</button>
+      <button class="icon-btn" data-action="close-modal" aria-label="Schließen">${icon('x')}</button></div>
     </div>
     <div class="lv-hero" style="--r:${rank.color}">
       ${rankBadge(rank, x.level, 'big')}
       <div class="lv-hero-text">
-        <b>${rankName(rank)}</b>
+        <b>${rankName(rank)}${typeof cosTitleChip === 'function' ? cosTitleChip() : ''}</b>
         <span>Level ${x.level} · insgesamt ${num(x.total)} XP</span>
         <div class="meter"><span data-anim="w" style="width:${(x.into / x.need) * 100}%"></span></div>
         <small>${dt(`Noch ${x.need - x.into} XP bis Level ${x.level + 1}`, `${x.need - x.into} XP to level ${x.level + 1}`)}${nextLine ? ` · ${nextLine}` : ''}</small>

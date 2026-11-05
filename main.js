@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, nativeTheme, shell, Tray, Menu, nativeImage
 const path = require('path');
 const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
+const google = require('./google');
 
 // Speicherort: normalerweise der App-Ordner. Wer zwei PCs nutzt, wählt z. B. einen OneDrive-Ordner,
 // der Pfad dazu steht in speicherort.json im App-Ordner. Fehlt der Ordner (OneDrive nicht da), gilt der App-Ordner.
@@ -423,6 +424,49 @@ ipcMain.handle('cal:fetch', async (_e, url) => {
   const text = await r.text();
   if (text.length > 20 * 1024 * 1024) throw new Error('Kalender zu groß');
   return text;
+});
+
+// Lebensmittel online suchen (Open Food Facts, frei und ohne Anmeldung). Eine reine Zahl gilt als Barcode.
+ipcMain.handle('food:search', async (_e, q, lang) => {
+  const term = String(q || '').trim().slice(0, 80);
+  if (term.length < 2) return [];
+  const isCode = /^\d{8,14}$/.test(term);
+  const fields = 'code,product_name,brands,nutriments,serving_quantity';
+  const ask = async (query) => {
+    const u = `https://search.openfoodfacts.org/search?q=${encodeURIComponent(query)}&page_size=30&langs=${lang === 'en' ? 'en' : 'de'}&fields=${fields}`;
+    const r = await net.fetch(u, { headers: { 'User-Agent': `Habix/${app.getVersion()} (Desktop-App)` } });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return (await r.json()).hits || [];
+  };
+  let hits = isCode ? await ask(`code:${term}`) : await ask(lang === 'en' ? term : `${term} countries_tags:"en:germany"`);
+  if (!hits.length && !isCode && lang !== 'en') hits = await ask(term);
+  const r1 = (v) => Math.round((Number(v) || 0) * 10) / 10;
+  const seen = new Set();
+  return hits.flatMap((p) => {
+    const n = p.nutriments || {};
+    const kcal = n['energy-kcal_100g'] ?? (n.energy_100g ? n.energy_100g / 4.184 : null);
+    const base = String(p.product_name || '').trim();
+    if (kcal == null || !base) return [];
+    const brand = String(Array.isArray(p.brands) ? p.brands[0] || '' : p.brands || '').split(',')[0].trim();
+    const name = brand && !base.toLowerCase().includes(brand.toLowerCase()) ? `${base} (${brand})` : base;
+    if (seen.has(name.toLowerCase())) return [];
+    seen.add(name.toLowerCase());
+    return [{ name: name.slice(0, 80), kcal: r1(kcal), p: r1(n.proteins_100g), c: r1(n.carbohydrates_100g), f: r1(n.fat_100g), portion: Math.round(Number(p.serving_quantity)) || 100, code: p.code || null }];
+  }).slice(0, 25);
+});
+
+// Google Kalender: Anmeldung und API laufen im Hauptprozess, der Zugang verlässt ihn nie
+ipcMain.handle('google:status', () => google.status());
+ipcMain.handle('google:login', async () => {
+  try { return { ok: true, ...(await google.login(settings.lang)) }; }
+  catch (e) { return { ok: false, error: e.code || String(e.message || e) }; }
+  finally { showWindow(); }
+});
+ipcMain.handle('google:cancel', () => google.cancelLogin());
+ipcMain.handle('google:logout', (_e, email) => google.logout(email));
+ipcMain.handle('google:api', async (_e, email, method, p, body) => {
+  try { return await google.api(email, method, p, body); }
+  catch (e) { return { ok: false, status: 0, error: e.code || String(e.message || e) }; }
 });
 
 ipcMain.handle('cal:file', async () => {

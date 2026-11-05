@@ -4,7 +4,7 @@ Kleine Schritte. Jeden Tag.
 
 **Webseite und Download:** https://habix.pro
 
-Habix ist eine kostenlose Desktop-App für Windows und Mac: Gewohnheiten, Aufgaben, Kalender, Statistiken und Level an einem Ort. Wer möchte, schaltet zusätzlich Stundenplan mit Stempeluhr und einen Finanzbereich frei. Alle Daten bleiben lokal auf deinem Rechner.
+Habix ist eine kostenlose Desktop-App für Windows und Mac: Gewohnheiten, Aufgaben, Kalender, Statistiken und Level an einem Ort. Wer möchte, schaltet zusätzlich Fitness, Stundenplan mit Stempeluhr und einen Finanzbereich frei. Alle Daten bleiben lokal auf deinem Rechner.
 
 ## Download
 
@@ -17,12 +17,14 @@ Windows zeigt beim ersten Start eventuell „Der Computer wurde durch Windows ge
 ## Funktionen
 
 - **Startseite:** Zeitleiste für den Tag, „Als Nächstes“ mit Countdown, Schnell-Eingabe („Zahnarzt morgen 14 Uhr“), XP-Tagesziel, Geburtstage, Mini-Monatskalender; Karten frei sortier- und ausblendbar
-- **Gewohnheiten:** abhaken oder Mengen zählen, Tageszeiten, Pausen, Serien und Abzeichen
+- **Gewohnheiten:** abhaken oder Mengen zählen, Tageszeiten, Serien und Abzeichen; Joker-Tage und Urlaubsmodus, damit Serien nicht reißen
 - **Übersicht:** der ganze Monat als Raster, Vergessenes nachtragen
 - **Statistiken:** Verläufe, Vergleiche, stärkste Wochentage, Aktivität
 - **Aufgaben und Kalender:** Monats- und Wochenansicht, Termine verschieben, Google, Outlook und Apple importieren, Erinnerungen
-- **Stimmung und Tagebuch** mit Wochenrückblick
-- **Level und Ränge:** 15 Ränge vom Rookie bis Unsterblich, mit Rangprüfungen und Wochenaufgaben
+- **Stimmung und Tagebuch** mit Morgen-Abfrage und Wochenrückblick
+- **Level und Ränge:** 15 Ränge vom Rookie bis Unsterblich, mit Rangprüfungen und drei Wochen-Challenges pro Woche
+- **Vitrine:** alle Ränge, Abzeichen und Erfolge, freischaltbare Titel und Farben für die Level-Anzeige
+- **Fitness** (freischaltbar): Trainingsplan, Sätze live abhaken, Kalorien und Makros, Wasser, Schlaf, Gewicht, eigenes Fitness-Level
 - **Arbeit** (freischaltbar): Stundenplan in halben Stunden, Ein- und Ausstempeln mit Pausen, Auswertung
 - **Finanzen** (freischaltbar): Kontoauszug als CSV, Kategorien, Abos, Budgets, ohne Bank-Login
 - Hell und dunkel, Deutsch und Englisch, Backups, Speicherort frei wählbar (z. B. OneDrive für zwei PCs)

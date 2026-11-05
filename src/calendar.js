@@ -326,6 +326,7 @@ function viewCalendar() {
           ${state.workEnabled ? `<label class="cal-src"><input type="checkbox" class="cal-toggle" data-cal="shifts" ${state.calShowShifts === false ? '' : 'checked'}><span class="cal-dot" style="--c:${SHIFT_COLOR}"></span><span class="cal-name">Arbeit aus dem Stundenplan</span></label>` : ''}
           ${state.calendars.map((c) => calRow(c)).join('')}
         </div>
+        ${gAccountRow()}
       </article>
     </div>
   </section>`;
@@ -344,7 +345,10 @@ function agendaRow(i, k, withDate = false) {
 }
 
 function calRow(c, local = false) {
-  const synced = c.url ? (c.error ? `<span class="cal-err">${icon('triangle-alert')}Nicht erreichbar</span>` : c.lastSync ? `aktualisiert ${hhmm(c.lastSync)}` : 'wird geladen …') : local ? '' : 'aus Datei';
+  // Bei mehreren Google-Konten steht das Konto dabei, sonst nur „Google“
+  const gname = c.google && gstat.accounts.length > 1 ? c.gacc : 'Google';
+  const synced = c.google ? (c.error ? `<span class="cal-err">${icon('triangle-alert')}Nicht erreichbar</span>` : `${esc(gname)}${c.lastSync ? ` · aktualisiert ${hhmm(c.lastSync)}` : ''}`)
+    : c.url ? (c.error ? `<span class="cal-err">${icon('triangle-alert')}Nicht erreichbar</span>` : c.lastSync ? `aktualisiert ${hhmm(c.lastSync)}` : 'wird geladen …') : local ? '' : 'aus Datei';
   return `
   <div class="cal-src">
     <input type="checkbox" class="cal-toggle" data-cal="${esc(c.id)}" ${c.visible === false ? '' : 'checked'} ${local ? 'disabled checked' : ''} aria-label="${esc(c.name)} anzeigen">
@@ -374,16 +378,17 @@ function todayEventsCard() {
 /* ================= Termin anlegen und bearbeiten ================= */
 
 function openEventEditor(ev, day, fromMin = null) {
-  if (ev && ev.cal !== 'local') { openEventInfo(ev, day); return; }
+  if (ev && ev.cal !== 'local' && !gWritable(ev.cal)) { openEventInfo(ev, day); return; }
   const now = new Date();
+  const cal = ev ? ev.cal : gWritable(state.calLast) ? state.calLast : 'local';
   const h = Math.min(22, now.getHours() + 1);
   ui.calEdit = ev
     ? {
       id: ev.id, title: ev.title, allDay: ev.allDay, note: ev.note || '', location: ev.location || '', color: ev.color || CAL_COLORS[0],
       date: ev.allDay ? ev.start : keyOf(new Date(ev.start)), endDate: ev.allDay ? ev.end : keyOf(new Date(ev.start)),
-      from: ev.allDay ? `${pad(h)}:00` : hhmm(ev.start), to: ev.allDay ? `${pad(h + 1)}:00` : hhmm(ev.end), remind: ev.remind ?? '', confirmDelete: false,
+      from: ev.allDay ? `${pad(h)}:00` : hhmm(ev.start), to: ev.allDay ? `${pad(h + 1)}:00` : hhmm(ev.end), remind: ev.remind ?? '', confirmDelete: false, cal,
     }
-    : { id: null, title: '', allDay: false, note: '', location: '', color: CAL_COLORS[0], date: day, endDate: day, from: fromMin !== null ? minLabel(fromMin) : `${pad(h)}:00`, to: fromMin !== null ? minLabel(Math.min(1439, fromMin + 60)) : `${pad(h + 1)}:00`, remind: '', confirmDelete: false };
+    : { id: null, cal, title: '', allDay: false, note: '', location: '', color: CAL_COLORS[0], date: day, endDate: day, from: fromMin !== null ? minLabel(fromMin) : `${pad(h)}:00`, to: fromMin !== null ? minLabel(Math.min(1439, fromMin + 60)) : `${pad(h + 1)}:00`, remind: '', confirmDelete: false };
   renderEventEditor(true);
 }
 
@@ -403,14 +408,15 @@ function renderEventEditor(first = false) {
         : `<div class="field"><label for="ce-from">Von</label><input class="input" type="time" id="ce-from" data-cal-field="from" value="${e.from}"></div>
            <div class="field"><label for="ce-to">Bis</label><input class="input" type="time" id="ce-to" data-cal-field="to" value="${e.to}"></div>`}
     </div>
-    ${e.allDay ? '' : `<div class="field"><label for="ce-remind">Erinnerung</label>
+    ${calChoice(e)}
+    ${e.allDay || isGoogleCal(e.cal) ? '' : `<div class="field"><label for="ce-remind">Erinnerung</label>
       <select class="input" id="ce-remind" data-cal-field="remind">
         ${[['', `Standard (${state.settings.remindEventsMin} Min. vorher)`], ['0', 'Keine'], ['5', '5 Min. vorher'], ['10', '10 Min. vorher'], ['15', '15 Min. vorher'], ['30', '30 Min. vorher'], ['60', '1 Std. vorher'], ['1440', '1 Tag vorher']]
           .map(([v, l]) => `<option value="${v}" ${String(e.remind) === v ? 'selected' : ''}>${l}</option>`).join('')}
       </select></div>`}
     <div class="field"><label for="ce-loc">Ort</label><input class="input" id="ce-loc" data-cal-field="location" maxlength="120" placeholder="optional" value="${esc(e.location)}"></div>
     <div class="field"><label for="ce-note">Notiz</label><textarea class="input note" id="ce-note" data-cal-field="note" rows="2" maxlength="1000" placeholder="optional">${esc(e.note)}</textarea></div>
-    <div class="field"><div class="label">Farbe</div><div class="color-row">${CAL_COLORS.map((c) => `<button class="swatch ${e.color === c ? 'on' : ''}" style="--c:${c}" data-action="cal-color" data-color="${c}" aria-label="Farbe ${c}"></button>`).join('')}</div></div>
+    ${isGoogleCal(e.cal) ? '' : `<div class="field"><div class="label">Farbe</div><div class="color-row">${CAL_COLORS.map((c) => `<button class="swatch ${e.color === c ? 'on' : ''}" style="--c:${c}" data-action="cal-color" data-color="${c}" aria-label="Farbe ${c}"></button>`).join('')}</div></div>`}
     ${e.error ? `<div class="error">${e.error}</div>` : ''}
     <div class="modal-foot">
       ${e.id ? (e.confirmDelete
@@ -433,6 +439,18 @@ document.addEventListener('input', (e) => {
   const f = e.target.dataset?.calField;
   if (f && ui.calEdit) ui.calEdit[f] = e.target.value;
 });
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'ce-cal' && ui.calEdit) { ui.calEdit.cal = e.target.value; renderEventEditor(); }
+});
+
+// Auswahl, in welchem Kalender der Termin steht (nur wenn Google-Kalender mit Schreibrecht verbunden sind)
+function calChoice(e) {
+  const google = state.calendars.filter((c) => c.google && c.writable);
+  if (!google.length) return '';
+  const opts = [{ id: 'local', name: 'Meine Termine' }, ...google];
+  return `<div class="field"><label for="ce-cal">${dt('Kalender', 'Calendar')}</label>
+    <select class="input" id="ce-cal">${opts.map((c) => `<option value="${esc(c.id)}" ${c.id === e.cal ? 'selected' : ''}>${esc(c.id === 'local' ? 'Meine Termine' : `Google · ${c.name}`)}</option>`).join('')}</select></div>`;
+}
 
 function saveEvent() {
   const e = ui.calEdit;
@@ -449,8 +467,11 @@ function saveEvent() {
     end = new Date(`${e.date}T${e.to || e.from || '00:00'}`).getTime();
     if (end <= start) end += 86400000; // über Mitternacht
   }
-  const data = { cal: 'local', title, allDay: e.allDay, start, end, note: e.note.trim(), location: e.location.trim(), color: e.color, remind: e.remind === '' || e.remind === undefined ? null : Number(e.remind) };
-  if (e.id) Object.assign(state.calEvents.find((x) => x.id === e.id), data);
+  const data = { cal: e.cal || 'local', title, allDay: e.allDay, start, end, note: e.note.trim(), location: e.location.trim(), color: e.color, remind: e.remind === '' || e.remind === undefined ? null : Number(e.remind) };
+  const old = e.id ? state.calEvents.find((x) => x.id === e.id) : null;
+  state.calLast = data.cal;
+  if (isGoogleCal(data.cal) || (old && isGoogleCal(old.cal))) gSave(old, data);
+  else if (old) Object.assign(old, data);
   else state.calEvents.push({ id: `local:${uid()}`, ...data });
   ui.calDay = e.allDay ? start : keyOf(new Date(start));
   ui.calEdit = null;
@@ -495,6 +516,7 @@ function renderImport(first = false) {
       <button class="icon-btn" data-action="close-modal" aria-label="Schließen">${icon('x')}</button>
     </div>
     ${desktop ? '' : '<div class="setting-note">Import ist nur in der Desktop-App verfügbar.</div>'}
+    ${gImportOption()}
     <div class="import-opt">
       <div class="import-head">${icon('link')}<div><b>Kalender abonnieren</b><span>Bleibt automatisch aktuell, alle 30 Minuten</span></div></div>
       <div class="field"><label for="ci-url">iCal-Adresse</label><input class="input" id="ci-url" data-imp-field="url" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics" value="${esc(im.url)}" autocomplete="off" spellcheck="false"></div>
@@ -706,7 +728,7 @@ function calHeader(title, isNow, sel) {
       </div>
       <div class="week-nav">
         <button class="icon-btn" data-action="cal-month" data-dir="-1" aria-label="${prev}">${icon('chevron-left')}</button>
-        <button class="btn small ${isNow ? 'ghost' : ''}" data-action="cal-month" data-dir="0">Heute</button>
+        ${navNowBtn('cal-month', year ? String(ui.calYear || new Date().getFullYear()) : week ? navWeekLabel(ui.calWeek || mondayOf(todayKey())) : navMonthLabel(ui.calMonth || todayKey().slice(0, 7)), isNow, dt('Zu heute', 'Go to today'))}
         <button class="icon-btn" data-action="cal-month" data-dir="1" aria-label="${next}">${icon('chevron-right')}</button>
       </div>
       <button class="btn" data-action="cal-import">${icon('calendar-plus')}Kalender importieren</button>
@@ -747,7 +769,7 @@ function layoutDay(items, k) {
 
 function weekBlock(b, k) {
   const ev = b.i.ev;
-  const movable = ev.task || (ev.cal === 'local' && b.i.startKey === b.i.endKey);
+  const movable = ev.task || ((ev.cal === 'local' || gWritable(ev.cal)) && b.i.startKey === b.i.endKey);
   const top = (b.s / 60) * HOUR_PX;
   const height = Math.max(20, ((b.e - b.s) / 60) * HOUR_PX - 2);
   const id = ev.task ? ev.taskId : ev.id;
@@ -913,6 +935,7 @@ function wkCommit(d, id, kind, day) {
       const len = d.mode === 'move' ? d.e - d.s : d.e + d.dMin - d.s;
       ev.start = start.getTime();
       ev.end = ev.start + len * 60000;
+      gMoved(ev);
     }
   }
   save();
@@ -952,22 +975,25 @@ function calendarAction(a, el) {
     case 'cal-month': {
       const dir = Number(el.dataset.dir);
       if (ui.calMode === 'year') {
-        ui.calYear = dir === 0 ? new Date().getFullYear() : (ui.calYear || new Date().getFullYear()) + dir;
+        const from = ui.calYear || new Date().getFullYear();
+        ui.calYear = dir === 0 ? new Date().getFullYear() : from + dir;
         if (dir === 0) ui.calDay = todayKey();
-        render('enter');
+        slideRender(slideDir(from, ui.calYear));
         return true;
       }
       if (ui.calMode === 'week') {
-        ui.calWeek = dir === 0 ? mondayOf(todayKey()) : addDays(ui.calWeek || mondayOf(todayKey()), dir * 7);
+        const from = ui.calWeek || mondayOf(todayKey());
+        ui.calWeek = dir === 0 ? mondayOf(todayKey()) : addDays(from, dir * 7);
         if (dir === 0) ui.calDay = todayKey();
-        render('enter');
+        slideRender(slideDir(from, ui.calWeek));
         return true;
       }
       const [y, mo] = (ui.calMonth || todayKey().slice(0, 7)).split('-').map(Number);
       const d = dir === 0 ? new Date() : new Date(y, mo - 1 + dir, 1);
+      const from = `${y}-${pad(mo)}`;
       ui.calMonth = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
       if (dir === 0) ui.calDay = todayKey();
-      render('enter');
+      slideRender(slideDir(from, ui.calMonth));
       return true;
     }
     case 'cal-day': {
@@ -1006,10 +1032,13 @@ function calendarAction(a, el) {
     case 'cal-save': saveEvent(); return true;
     case 'cal-delete': ui.calEdit.confirmDelete = true; renderEventEditor(); return true;
     case 'cal-delete-no': ui.calEdit.confirmDelete = false; renderEventEditor(); return true;
-    case 'cal-delete-yes':
-      state.calEvents = state.calEvents.filter((x) => x.id !== ui.calEdit.id);
+    case 'cal-delete-yes': {
+      const ev = state.calEvents.find((x) => x.id === ui.calEdit.id);
+      if (ev && isGoogleCal(ev.cal)) gRemove(ev);
+      else state.calEvents = state.calEvents.filter((x) => x.id !== ui.calEdit.id);
       ui.calEdit = null; save(); closeModal(); toast('Termin gelöscht'); render('update');
       return true;
+    }
     case 'cal-import': openImport(); return true;
     case 'cal-subscribe': subscribeCalendar(); return true;
     case 'cal-file': importCalendarFile(); return true;
@@ -1017,6 +1046,9 @@ function calendarAction(a, el) {
     case 'cal-remove': ui.calConfirm = el.dataset.cal; render('update'); return true;
     case 'cal-remove-yes': {
       const id = el.dataset.cal;
+      // Google-Kalender bleiben beim nächsten Abgleich draußen
+      const gc = state.calendars.find((c) => c.id === id && c.google);
+      if (gc) state.google = { ...(state.google || {}), skip: [...(state.google?.skip || []), `${gc.gacc}|${gc.google}`] };
       state.calendars = state.calendars.filter((c) => c.id !== id);
       state.calEvents = state.calEvents.filter((e) => e.cal !== id);
       ui.calConfirm = null; save(); toast('Kalender entfernt'); render('update');

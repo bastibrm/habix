@@ -25,20 +25,34 @@
       <nav class="nav" aria-label="Hauptnavigation">
         <span class="nav-indicator" aria-hidden="true"></span>
         <button class="nav-item active" data-view="today" id="nav-today"><i data-lucide="sun"></i><span>Heute</span></button>
+        <button class="nav-section" data-nav-group="plan" aria-expanded="true"><span>Planen</span><i data-lucide="chevron-down"></i></button>
+        <div class="nav-group" data-group="plan"><div class="nav-group-in">
+            <button class="nav-item" data-view="calendar" id="nav-calendar"><i data-lucide="calendar-days"></i><span>Kalender</span></button>
+            <button class="nav-item" data-view="tasks" id="nav-tasks"><i data-lucide="list-todo"></i><span>Aufgaben</span><span class="nav-count" id="nav-task-count"></span></button>
+        </div></div>
 
-        <div class="nav-section">Planen</div>
-        <button class="nav-item" data-view="calendar" id="nav-calendar"><i data-lucide="calendar-days"></i><span>Kalender</span></button>
-        <button class="nav-item" data-view="tasks" id="nav-tasks"><i data-lucide="list-todo"></i><span>Aufgaben</span><span class="nav-count" id="nav-task-count"></span></button>
+        <button class="nav-section" data-nav-group="habits" aria-expanded="true"><span>Gewohnheiten</span><i data-lucide="chevron-down"></i></button>
+        <div class="nav-group" data-group="habits"><div class="nav-group-in">
+            <button class="nav-item" data-view="habits" id="nav-habits"><i data-lucide="list-checks"></i><span>Übersicht</span></button>
+            <button class="nav-item" data-view="stats" id="nav-stats"><i data-lucide="activity"></i><span>Statistiken</span></button>
+        </div></div>
 
-        <div class="nav-section">Gewohnheiten</div>
-        <button class="nav-item" data-view="habits" id="nav-habits"><i data-lucide="list-checks"></i><span>Übersicht</span></button>
-        <button class="nav-item" data-view="stats" id="nav-stats"><i data-lucide="activity"></i><span>Statistiken</span></button>
+        <button class="nav-section" data-nav-group="fitness" aria-expanded="true"><span>Fitness</span><i data-lucide="chevron-down"></i></button>
+        <div class="nav-group" data-group="fitness"><div class="nav-group-in">
+            <button class="nav-item" data-view="fitness" id="nav-fitness"><i data-lucide="dumbbell"></i><span>Übersicht</span><span class="nav-lock" aria-label="gesperrt"><i data-lucide="lock"></i></span></button>
+            <button class="nav-item" data-view="training" id="nav-training"><i data-lucide="clipboard-list"></i><span>Trainingsplan</span><span class="nav-lock" aria-label="gesperrt"><i data-lucide="lock"></i></span></button>
+            <button class="nav-item" data-view="nutrition" id="nav-nutrition"><i data-lucide="apple"></i><span>Ernährung</span><span class="nav-lock" aria-label="gesperrt"><i data-lucide="lock"></i></span></button>
+        </div></div>
 
-        <div class="nav-section">Arbeit</div>
-        <button class="nav-item" data-view="schedule" id="nav-schedule"><i data-lucide="calendar-clock"></i><span>Stundenplan</span><span class="nav-lock" aria-label="gesperrt"><i data-lucide="lock"></i></span></button>
+        <button class="nav-section" data-nav-group="work" aria-expanded="true"><span>Arbeit</span><i data-lucide="chevron-down"></i></button>
+        <div class="nav-group" data-group="work"><div class="nav-group-in">
+            <button class="nav-item" data-view="schedule" id="nav-schedule"><i data-lucide="calendar-clock"></i><span>Stundenplan</span><span class="nav-lock" aria-label="gesperrt"><i data-lucide="lock"></i></span></button>
+        </div></div>
 
-        <div class="nav-section">Geld</div>
-        <button class="nav-item" data-view="finance" id="nav-finance"><i data-lucide="wallet"></i><span>Finanzen</span><span class="nav-lock" aria-label="gesperrt"><i data-lucide="lock"></i></span></button>
+        <button class="nav-section" data-nav-group="money" aria-expanded="true"><span>Geld</span><i data-lucide="chevron-down"></i></button>
+        <div class="nav-group" data-group="money"><div class="nav-group-in">
+            <button class="nav-item" data-view="finance" id="nav-finance"><i data-lucide="wallet"></i><span>Finanzen</span><span class="nav-lock" aria-label="gesperrt"><i data-lucide="lock"></i></span></button>
+        </div></div>
 
       </nav>
 
@@ -50,12 +64,14 @@
         </div>
         <button class="nav-item nav-bottom" data-view="settings" id="nav-settings"><i data-lucide="settings"></i><span>Einstellungen</span></button>      </div>
     </aside>
+    <button class="sb-toggle" id="sb-toggle" aria-expanded="true" aria-label="Menü einfahren"><i data-lucide="chevrons-left"></i></button>
 
     <main class="main">
       <div class="titlebar drag">
         <div class="title-thought" id="title-thought"></div>
         <div class="title-actions">
           <button class="level-pill" id="level-card" data-action="level-open"></button>
+          <button class="level-pill fit-pill" id="fit-level-card" data-action="fit-level" hidden></button>
           <div class="clock-pill" id="clock-pill"></div>
         </div>
       </div>
@@ -71,14 +87,21 @@
   <script src="../node_modules/lucide/dist/umd/lucide.min.js"></script>
   <script src="app.js"></script>
   <script src="calendar.js"></script>
+  <script src="gcal.js"></script>
   <script src="tasks.js"></script>
   <script src="onboarding.js"></script>
   <script src="levels.js"></script>
   <script src="finance.js"></script>
+  <script src="fitness.js"></script>
+  <script src="fitness-more.js"></script>
+  <script src="fitness-level.js"></script>
   <script src="dashboard.js"></script>
+  <script src="pause.js"></script>
+  <script src="rewards.js"></script>
   <script src="storage.js"></script>
   <script src="i18n-en.js"></script>
   <script src="i18n.js"></script>
+  <script src="checkin.js"></script>
   <script src="extras.js"></script>
 </body>
 </html>

@@ -374,8 +374,8 @@ function viewSettings() {
     </label>`;
   return `
   <header class="head fade-in"><div><div class="eyebrow">Habix</div><h1>Einstellungen</h1></div></header>
-  <section class="settings-cols">
-   <div class="settings-col">
+  <section class="settings-cols" id="settings-cols">
+    <!-- Reihenfolge der Karten; verteilt werden sie von layoutSettings() -->
     <article class="card s12 fade-in">
       <div class="card-head"><div><h2>Darstellung</h2><div class="sub">${onMac() ? dt('Hell, dunkel oder automatisch wie auf dem Mac eingestellt', 'Light, dark or automatic like your Mac') : 'Hell, dunkel oder automatisch wie in Windows eingestellt'}</div></div><div class="icon-btn">${icon('palette')}</div></div>
       <div class="theme-options" role="radiogroup" aria-label="Darstellung">
@@ -392,11 +392,35 @@ function viewSettings() {
           <button class="${state.settings.lang === 'en' ? 'on' : ''}" data-action="onb-lang" data-lang="en">English</button>
         </div>
       </div>
+      <label class="setting" for="set-fitness">
+        <div><b>Bereich Fitness</b><span>Trainingsplan, Gewicht, Kalorien und Ernährung</span></div>
+        <input type="checkbox" class="switch" id="set-fitness" data-action="fit-toggle" ${state.fitness?.enabled ? 'checked' : ''}>
+      </label>
       <label class="setting" for="set-work">
         <div><b>Bereich Arbeit</b><span>Stundenplan, Ein- und Ausstempeln mit Pausen und Schicht-Erinnerungen</span></div>
         <input type="checkbox" class="switch" id="set-work" data-action="work-toggle" ${state.workEnabled ? 'checked' : ''}>
       </label>
+      <label class="setting" for="set-finance">
+        <div><b>Bereich Finanzen</b><span>Kontoauszüge, Ausgaben nach Kategorie, Budgets und Abos</span></div>
+        <input type="checkbox" class="switch" id="set-finance" data-action="fin-toggle" ${state.finance?.enabled ? 'checked' : ''}>
+      </label>
     </article>
+    <article class="card s6 fade-in">
+      <div class="card-head"><div><h2>Erinnerungen</h2><div class="sub">${onMac() ? dt('Mac-Mitteilungen, auch wenn die App im Hintergrund läuft', 'Mac notifications, even when the app runs in the background') : 'Windows-Benachrichtigungen, auch wenn die App im Hintergrund läuft'}</div></div><div class="icon-btn">${icon('bell')}</div></div>
+      <div class="settings-list">
+        ${sw('remindHabits', 'Offene Gewohnheiten', 'Abends erinnern, wenn noch etwas offen ist')}
+        <label class="setting sub-setting ${s.remindHabits ? '' : 'off'}" for="set-remindHabitsAt"><div><b>Uhrzeit</b></div><input type="time" class="input small-input" data-setting="remindHabitsAt" id="set-remindHabitsAt" value="${esc(s.remindHabitsAt)}"></label>
+        ${sw('remindShift', 'Schichtbeginn', 'Erinnern, wenn du noch nicht eingestempelt bist')}
+        <label class="setting sub-setting ${s.remindShift ? '' : 'off'}" for="set-remindShiftMin"><div><b>Minuten vorher</b></div><input type="number" min="0" max="120" step="5" class="input small-input" data-setting="remindShiftMin" id="set-remindShiftMin" value="${s.remindShiftMin}"></label>
+        ${sw('remindEvents', 'Termine und Aufgaben', 'Vor Terminen erinnern, Aufgaben mit Uhrzeit zur fälligen Zeit')}
+        <label class="setting sub-setting ${s.remindEvents ? '' : 'off'}" for="set-remindEventsMin"><div><b>Minuten vor Terminen</b></div><input type="number" min="0" max="1440" step="5" class="input small-input" data-setting="remindEventsMin" id="set-remindEventsMin" value="${s.remindEventsMin}"></label>
+        ${sw('remindClockOut', 'Ausstempeln vergessen', '15 Minuten nach Schichtende erinnern')}
+        ${sw('morningCheck', 'Morgen-Abfrage', 'Beim ersten Öffnen am Tag nach Stimmung, Schlaf und Co. fragen')}
+        ${sw('weeklyReview', 'Wochenrückblick', 'Sonntags ab 18 Uhr automatisch zeigen')}
+      </div>
+      <button class="btn small" data-action="test-notify" style="align-self:flex-start">${icon('bell-ring')}Test-Benachrichtigung</button>
+    </article>
+    ${timezoneCard()}
     <article class="card s6 fade-in">
       <div class="card-head"><div><h2>Datensicherung</h2><div class="sub">${state.lastBackup ? `Letzte automatische Sicherung: ${esc(fmtShort(state.lastBackup))}` : 'Jede Woche wird automatisch eine Sicherung angelegt'}</div></div><div class="icon-btn">${icon('shield-check')}</div></div>
       ${desktop ? `
@@ -413,6 +437,16 @@ function viewSettings() {
       <div class="setting-note">${icon('info')}<span>Für einen neuen PC: hier ein Backup speichern, die Datei rüberkopieren und dort mit „Wiederherstellen“ laden.</span></div>`
       : '<div class="muted">Nur in der Desktop-App verfügbar.</div>'}
     </article>
+    ${homeSettingsCard()}
+    <article class="card s6 fade-in">
+      <div class="card-head"><div><h2>${onMac() ? dt('Start und Menüleiste', 'Startup and menu bar') : 'Start und Taskleiste'}</h2><div class="sub">${onMac() ? dt('Stempeln über das Symbol oben in der Menüleiste, ohne das Fenster zu öffnen', 'Clock in from the menu bar icon without opening the window') : 'Stempeln über das Symbol unten rechts, ohne das Fenster zu öffnen'}</div></div><div class="icon-btn">${icon('monitor')}</div></div>
+      ${desktop ? `<div class="settings-list">
+        ${onMac() ? sw('autostart', dt('Beim Anmelden starten', 'Open at login'), dt('Habix startet mit dem Mac, das Symbol erscheint oben in der Menüleiste', 'Habix starts with your Mac, the icon appears in the menu bar')) : sw('autostart', 'Mit Windows starten', 'Startet unsichtbar im Hintergrund, das Symbol erscheint unten rechts')}
+        ${onMac() ? sw('closeToTray', dt('Beim Schließen weiterlaufen', 'Keep running when closed'), dt('Der rote Knopf versteckt die App nur. Beenden mit ⌘Q oder über das Symbol in der Menüleiste.', 'The red button only hides the app. Quit with ⌘Q or from the menu bar icon.')) : sw('closeToTray', 'Beim Schließen weiterlaufen', 'Das X versteckt die App nur. Beenden geht über das Symbol unten rechts.')}
+      </div>
+      <div class="setting-note">${icon('info')}<span>${onMac() ? dt('Ein Klick auf das Symbol oben in der Menüleiste zeigt Einstempeln, Pause, Ausstempeln und „Habix öffnen“.', 'Clicking the menu bar icon shows clock in, break, clock out and “Open Habix”.') : 'Ein Klick auf das Symbol unten rechts öffnet Habix, ein Rechtsklick zeigt Einstempeln, Pause und Ausstempeln.'}</span></div>`
+      : '<div class="muted">Nur in der Desktop-App verfügbar.</div>'}
+    </article>
     <article class="card s12 fade-in">
       <div class="card-head"><div><h2>Daten</h2><div class="sub">Alles bleibt lokal auf diesem PC.</div></div></div>
       ${desktop ? storageSetting() : ''}
@@ -427,39 +461,36 @@ function viewSettings() {
           : `<button class="btn small danger" data-action="reset">${icon('trash-2')}Alles zurücksetzen</button>`}
       </div>
     </article>
-   </div>
-   <div class="settings-col">
-    <article class="card s6 fade-in">
-      <div class="card-head"><div><h2>Erinnerungen</h2><div class="sub">${onMac() ? dt('Mac-Mitteilungen, auch wenn die App im Hintergrund läuft', 'Mac notifications, even when the app runs in the background') : 'Windows-Benachrichtigungen, auch wenn die App im Hintergrund läuft'}</div></div><div class="icon-btn">${icon('bell')}</div></div>
-      <div class="settings-list">
-        ${sw('remindHabits', 'Offene Gewohnheiten', 'Abends erinnern, wenn noch etwas offen ist')}
-        <label class="setting sub-setting ${s.remindHabits ? '' : 'off'}" for="set-remindHabitsAt"><div><b>Uhrzeit</b></div><input type="time" class="input small-input" data-setting="remindHabitsAt" id="set-remindHabitsAt" value="${esc(s.remindHabitsAt)}"></label>
-        ${sw('remindShift', 'Schichtbeginn', 'Erinnern, wenn du noch nicht eingestempelt bist')}
-        <label class="setting sub-setting ${s.remindShift ? '' : 'off'}" for="set-remindShiftMin"><div><b>Minuten vorher</b></div><input type="number" min="0" max="120" step="5" class="input small-input" data-setting="remindShiftMin" id="set-remindShiftMin" value="${s.remindShiftMin}"></label>
-        ${sw('remindEvents', 'Termine und Aufgaben', 'Vor Terminen erinnern, Aufgaben mit Uhrzeit zur fälligen Zeit')}
-        <label class="setting sub-setting ${s.remindEvents ? '' : 'off'}" for="set-remindEventsMin"><div><b>Minuten vor Terminen</b></div><input type="number" min="0" max="1440" step="5" class="input small-input" data-setting="remindEventsMin" id="set-remindEventsMin" value="${s.remindEventsMin}"></label>
-        ${sw('remindClockOut', 'Ausstempeln vergessen', '15 Minuten nach Schichtende erinnern')}
-        ${sw('weeklyReview', 'Wochenrückblick', 'Sonntags ab 18 Uhr automatisch zeigen')}
-      </div>
-      <button class="btn small" data-action="test-notify" style="align-self:flex-start">${icon('bell-ring')}Test-Benachrichtigung</button>
-    </article>
-    ${homeSettingsCard()}
-   </div>
-   <div class="settings-col">
-    ${timezoneCard()}
-    <article class="card s6 fade-in">
-      <div class="card-head"><div><h2>${onMac() ? dt('Start und Menüleiste', 'Startup and menu bar') : 'Start und Taskleiste'}</h2><div class="sub">${onMac() ? dt('Stempeln über das Symbol oben in der Menüleiste, ohne das Fenster zu öffnen', 'Clock in from the menu bar icon without opening the window') : 'Stempeln über das Symbol unten rechts, ohne das Fenster zu öffnen'}</div></div><div class="icon-btn">${icon('monitor')}</div></div>
-      ${desktop ? `<div class="settings-list">
-        ${onMac() ? sw('autostart', dt('Beim Anmelden starten', 'Open at login'), dt('Habix startet mit dem Mac, das Symbol erscheint oben in der Menüleiste', 'Habix starts with your Mac, the icon appears in the menu bar')) : sw('autostart', 'Mit Windows starten', 'Startet unsichtbar im Hintergrund, das Symbol erscheint unten rechts')}
-        ${onMac() ? sw('closeToTray', dt('Beim Schließen weiterlaufen', 'Keep running when closed'), dt('Der rote Knopf versteckt die App nur. Beenden mit ⌘Q oder über das Symbol in der Menüleiste.', 'The red button only hides the app. Quit with ⌘Q or from the menu bar icon.')) : sw('closeToTray', 'Beim Schließen weiterlaufen', 'Das X versteckt die App nur. Beenden geht über das Symbol unten rechts.')}
-      </div>
-      <div class="setting-note">${icon('info')}<span>${onMac() ? dt('Ein Klick auf das Symbol oben in der Menüleiste zeigt Einstempeln, Pause, Ausstempeln und „Habix öffnen“.', 'Clicking the menu bar icon shows clock in, break, clock out and “Open Habix”.') : 'Ein Klick auf das Symbol unten rechts öffnet Habix, ein Rechtsklick zeigt Einstempeln, Pause und Ausstempeln.'}</span></div>`
-      : '<div class="muted">Nur in der Desktop-App verfügbar.</div>'}
-    </article>
+    ${googleSettingsCard()}
     ${updatesCard()}
-   </div>
   </section>`;
 }
+
+/* Einstellungen: die Karten der Reihe nach immer in die gerade kürzeste Spalte, so bleiben keine Löcher.
+   Wie viele Spalten passen, hängt von der Breite ab (mindestens 340 px je Spalte, höchstens drei). */
+function layoutSettings() {
+  const root = document.getElementById('settings-cols');
+  if (!root) return;
+  const cards = root._cards || (root._cards = [...root.children].filter((el) => el.matches('article')));
+  const gap = 12;
+  const n = Math.max(1, Math.min(3, Math.floor((root.clientWidth + gap) / (340 + gap))));
+  if (root._n === n && root._w === root.clientWidth && root._h === cards.map((c) => c.offsetHeight).join()) return;
+  const cols = Array.from({ length: n }, () => { const d = document.createElement('div'); d.className = 'settings-col'; return d; });
+  root.replaceChildren(...cols);
+  const h = new Array(n).fill(0);
+  for (const card of cards) {
+    const i = h.indexOf(Math.min(...h));
+    cols[i].appendChild(card);
+    h[i] += card.offsetHeight + gap;
+  }
+  root.style.setProperty('--cols', n);
+  root._n = n; root._w = root.clientWidth; root._h = cards.map((c) => c.offsetHeight).join();
+}
+let settingsFrame = 0;
+const settingsRelayout = () => { cancelAnimationFrame(settingsFrame); settingsFrame = requestAnimationFrame(layoutSettings); };
+window.addEventListener('resize', settingsRelayout);
+// Auch wenn sich die Breite ohne Fenstergröße ändert (Seitenleiste) oder Inhalte nachträglich höher werden
+if (window.ResizeObserver) new ResizeObserver(() => { if (ui.view === 'settings') settingsRelayout(); }).observe(document.getElementById('view'));
 
 document.addEventListener('change', (e) => {
   const t = e.target;
@@ -687,7 +718,7 @@ function extrasAction(a, el) {
     case 'relaunch': relaunchApp(); break;
     case 'update-check': ui.update = { ...ui.update, status: 'checking' }; render('update'); window.api?.updateCheck(); break;
     case 'update-install': window.api?.updateInstall(); break;
-    default: if (!calendarAction(a, el) && !taskAction(a, el) && !onboardingAction(a, el) && !financeAction(a, el) && !levelAction(a, el) && !dashAction(a, el) && !(a.startsWith('loc-') && storageAction(a))) workAction(a, el);
+    default: if (!calendarAction(a, el) && !gAction(a, el) && !taskAction(a, el) && !onboardingAction(a, el) && !financeAction(a, el) && !fitnessAction(a, el) && !fitLevelAction(a) && !pauseAction(a, el) && !rewardAction(a, el) && !levelAction(a, el) && !checkinAction(a, el) && !dashAction(a, el) && !(a.startsWith('loc-') && storageAction(a))) workAction(a, el);
   }
 }
 
@@ -708,8 +739,8 @@ load().then(async () => {
   applySettings();
   syncBadges(false);
   render('enter');
-  setTimeout(() => { maybeOnboarding(); if (state.onboarded) maybeShowReview(); autoBackup(); checkReminders(); syncAllCalendars(); }, 900);
+  setTimeout(() => { maybeOnboarding(); if (state.onboarded) { maybeShowReview(); maybeCheckin(); } autoBackup(); checkReminders(); syncAllCalendars(); gInit(); }, 900);
 });
 
-setInterval(() => { checkReminders(); maybeShowReview(); }, 30000);
+setInterval(() => { checkReminders(); maybeShowReview(); maybeCheckin(); }, 30000);
 setInterval(syncAllCalendars, 30 * 60 * 1000);

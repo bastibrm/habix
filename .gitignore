@@ -4,3 +4,6 @@ promo/out/
 *.log
 .claude/
 promo/song.mp3
+
+# Google-Zugangsdaten der App, kommen nur in die fertigen Builds
+google-oauth.json

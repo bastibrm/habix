@@ -53,6 +53,7 @@ app.whenReady().then(async () => {
     const k = todayKey();
     active().filter((h) => !isAmount(h)).slice(0, 3).forEach((h) => { state.log[k] ||= []; if (!state.log[k].includes(h.id)) state.log[k].push(h.id); });
     (state.journal[k] ||= {}).mood = 4;
+    state.fitness.lvSeen = 999; state.fitness.rankSeen = 99; state.cosmetic = { title: 'early', color: null };
     save(); __promo.go('today');
     return 1;
   })()`);
@@ -72,6 +73,10 @@ app.whenReady().then(async () => {
   await shot('stundenplan', "__promo.go('schedule')");
   await shot('finanzen', "__promo.go('finance')");
   await shot('level', "__promo.go('today'); openLevelPanel()");
+  await shot('vitrine', "openShowcase()");
+  await shot('pause', "closeModal(); const k = range(addDays(todayKey(), -6), addDays(todayKey(), -1)).reverse().find((d) => missedOn(d).length); if (k) state.jokers = { [k]: true }; openPausePanel()");
+  await shot('fitness', "closeModal(); __promo.go('fitness'); document.getElementById('scroller').scrollTop = 0");
+  await shot('ernaehrung', "__promo.go('nutrition'); document.getElementById('scroller').scrollTop = 0");
   await shot('anpassen', "closeModal(); ui.dashEdit = true; __promo.go('today')");
   await shot('hell', "ui.dashEdit = false; __promo.theme('light'); __promo.go('today')");
   srv.close();

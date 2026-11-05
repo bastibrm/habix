@@ -254,7 +254,7 @@ function viewFinance() {
     <div class="head-actions">
       <div class="week-nav">
         <button class="icon-btn" data-action="fin-month" data-dir="-1" aria-label="Voriger Monat">${icon('chevron-left')}</button>
-        <button class="btn small ${ym === latest ? 'ghost' : ''}" data-action="fin-month" data-dir="0">Neuester Monat</button>
+        ${navNowBtn('fin-month', navMonthLabel(ym), ym === latest, dt('Zum neuesten Monat', 'Go to the latest month'))}
         <button class="icon-btn" data-action="fin-month" data-dir="1" aria-label="Nächster Monat">${icon('chevron-right')}</button>
       </div>
       <button class="btn" data-action="fin-sub-new">${icon('repeat')}Abo hinzufügen</button>
@@ -507,13 +507,20 @@ function financeAction(a, el) {
   switch (a) {
     case 'fin-unlock-import': pickStatement(true); return true;
     case 'fin-import': pickStatement(false); return true;
+    case 'fin-toggle':
+      f.enabled = el.checked;
+      save();
+      renderSidebar();
+      toast(el.checked ? 'Bereich Finanzen ist aktiv' : 'Bereich Finanzen ist aus. Deine Daten bleiben gespeichert.');
+      return true;
     case 'fin-month': {
       const dir = Number(el.dataset.dir);
       const latest = f.tx[0]?.date?.slice(0, 7) || todayKey().slice(0, 7);
+      const from = ui.finMonth || latest;
       if (dir === 0) ui.finMonth = latest;
-      else { const d = parseKey(`${ui.finMonth || latest}-01`); d.setMonth(d.getMonth() + dir); ui.finMonth = keyOf(d).slice(0, 7); }
+      else { const d = parseKey(`${from}-01`); d.setMonth(d.getMonth() + dir); ui.finMonth = keyOf(d).slice(0, 7); }
       ui.finLimit = 40;
-      render('enter');
+      slideRender(slideDir(from, ui.finMonth));
       return true;
     }
     case 'fin-budget':

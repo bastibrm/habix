@@ -203,12 +203,15 @@
     .compare .bar { position: absolute; top: 0; bottom: 0; left: var(--cut, 50%); width: 2px; margin-left: -1px; background: #fff; box-shadow: 0 0 12px rgba(0,0,0,.6); }
     .compare .bar::after { content: "‹ ›"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; border-radius: 50%;
       display: grid; place-items: center; font: 700 14px var(--body); color: #0b0b0e; background: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+    .mlist { margin-top: 22px; display: grid; gap: 8px; }
+    .mlist div { display: flex; justify-content: space-between; gap: 10px; padding: 11px 14px; border-radius: 12px; border: 1px solid var(--line-hi); background: rgba(0,0,0,.25); font-size: 14px; color: var(--muted); }
+    .mlist b { color: var(--fg); }
     .crop { margin: 22px -28px -28px; border-top: 1px solid var(--line); overflow: hidden; aspect-ratio: 16 / 8; }
     .crop img { width: 100%; height: 100%; object-fit: cover; object-position: var(--pos, 50% 0%); transition: transform .8s var(--ease); }
     .tile:hover .crop img { transform: scale(1.04); }
 
     /* Freischaltbar */
-    .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .duo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
     .unlock { padding: 0; }
     .unlock .crop { margin: 0; border: 0; border-bottom: 1px solid var(--line); aspect-ratio: 16 / 9; }
     .unlock .crop img { filter: grayscale(.85) brightness(.55); transition: filter .7s var(--ease), transform .8s var(--ease); }
@@ -310,9 +313,9 @@
     <div class="aurora"><span></span><span></span><span></span></div>
     <div class="grid-bg"></div>
     <div class="wrap">
-      <a class="badge reveal" href="https://github.com/bastibrm/habix/releases/latest"><b id="ver">Neu</b>Habix: 15 Ränge, Wochenaufgaben und Teilschritte →</a>
+      <a class="badge reveal" href="https://github.com/bastibrm/habix/releases/latest"><b id="ver">Neu</b>Fitness, Wochen-Challenges, Joker-Tage und deine Vitrine →</a>
       <h1 class="reveal d1"><span class="line">Kleine Schritte.</span><span class="line grad">Jeden Tag.</span></h1>
-      <p class="lead reveal d2">Habix bringt Gewohnheiten, Aufgaben, Kalender und deine Fortschritte in eine ruhige, schnelle Desktop-App. Ohne Konto, ohne Abo, und deine Daten bleiben auf deinem PC.</p>
+      <p class="lead reveal d2">Habix bringt Gewohnheiten, Aufgaben, Kalender, Training und deine Fortschritte in eine ruhige, schnelle Desktop-App. Ohne Konto, ohne Abo, und deine Daten bleiben auf deinem PC.</p>
       <div class="cta reveal d3">
         <a class="btn primary lg dl" href="https://github.com/bastibrm/habix/releases/latest"><svg><use href="#dl"/></svg><span class="dl-label">Für Windows herunterladen</span></a>
         <a class="btn ghost lg" href="#video"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>Video ansehen</a>
@@ -330,7 +333,7 @@
         <div class="float f1"><span class="ic"><svg class="i"><use href="#check"/></svg></span><div><b>Lesen erledigt</b><span class="xp">+10 XP</span><small>Serie: 12 Tage</small></div></div>
         <div class="float f2"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span><div><b>Zahnarzt</b><small>in 25 Min. · 14:00</small></div></div>
         <div class="float f3"><span class="ic"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 3.5 5 5.5 5 10.5A5 5 0 0 1 7 12.5c0-2 1-3.5 2-4.5.3 1.6 1.2 2.6 2.3 3C10.8 8 11.2 5 12 2z"/></svg></span><div><b>12-Tage-Serie</b><small>Wasser trinken</small></div></div>
-        <div class="float f4"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="M8.5 14 7 22l5-3 5 3-1.5-8"/></svg></span><div><b>Level 16</b><small>Meister</small></div></div>
+        <div class="float f4"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="M8.5 14 7 22l5-3 5 3-1.5-8"/></svg></span><div><b>Level 16</b><small>Maschine</small></div></div>
       </div>
 
       <div class="stats reveal">
@@ -367,7 +370,7 @@
           <div class="step" data-img="1">
             <div class="num">02 · Gewohnheiten</div><h3>Dein ganzer Monat, Haken für Haken</h3>
             <p>Abhaken oder Mengen zählen, morgens, mittags oder abends. In der Monatsübersicht trägst du Vergessenes einfach nach.</p>
-            <ul><li>Serien, Pausen und Abzeichen für 7, 30, 66, 100 und 365 Tage</li><li>Stimmung und kurze Notiz für jeden Tag</li><li>Erinnerung am Abend, wenn noch etwas offen ist</li></ul>
+            <ul><li>Serien und Abzeichen für 7, 30, 66, 100 und 365 Tage</li><li>Joker-Tage und Urlaubsmodus: Krank oder unterwegs, deine Serie reißt nicht</li><li>Stimmung, Schlaf und kurze Notiz, auf Wunsch morgens abgefragt</li></ul>
             <img class="shot-m" src="img/uebersicht.jpg" alt="Monatsübersicht" loading="lazy">
           </div>
           <div class="step" data-img="2">
@@ -384,9 +387,21 @@
           </div>
           <div class="step" data-img="4">
             <div class="num">05 · Level und Ränge</div><h3>Vom Rookie zum GOAT</h3>
-            <p>Für Gewohnheiten, Aufgaben und deine Stimmung sammelst du XP und steigst auf: Hustler, Beast, Boss, Champion, Titan und weiter bis zum GOAT. Für jeden Rang wartet eine Prüfung, dazu jede Woche eine Wochenaufgabe mit Bonus-XP.</p>
-            <ul><li>XP-Tagesziel auf der Startseite</li><li>Abzeichen für lange Serien geben extra XP</li></ul>
+            <p>Für Gewohnheiten, Aufgaben und deine Stimmung sammelst du XP und steigst auf: Hustler, Beast, Boss, Champion, Titan und weiter bis zum GOAT. Für jeden Rang wartet eine Prüfung, und jede Woche kommen drei neue Challenges.</p>
+            <ul><li>Wochen-Challenges: leicht, mittel und schwer, mit Bonus für alle drei</li><li>XP-Tagesziel auf der Startseite</li><li>Abzeichen für lange Serien geben extra XP</li></ul>
             <img class="shot-m" src="img/level.jpg" alt="Level und Ränge" loading="lazy">
+          </div>
+          <div class="step" data-img="5">
+            <div class="num">06 · Vitrine</div><h3>Sammle, was du dir verdient hast</h3>
+            <p>Alle Ränge, Abzeichen und Erfolge an einem Ort. Dazu schaltest du Titel wie „Frühaufsteher“ oder „Serientäter“ und neue Farben für deine Level-Anzeige frei.</p>
+            <ul><li>13 Titel und 8 Farben, bis hin zum Regenbogen ab Level 50</li><li>Der gewählte Titel steht oben neben deinem Level</li></ul>
+            <img class="shot-m" src="img/vitrine.jpg" alt="Vitrine" loading="lazy">
+          </div>
+          <div class="step" data-img="6">
+            <div class="num">07 · Fitness</div><h3>Training und Ernährung, mit eigenem Level</h3>
+            <p>Trainingstage planen, Sätze live abhaken, Kalorien, Wasser, Schlaf und Gewicht im Blick. Fitness hat ein eigenes Level mit 13 Rängen vom Neuling bis Unbesiegbar.</p>
+            <ul><li>Tag in der Woche anklicken und Training einplanen</li><li>Bestleistungen, Wochenziel und Trainingskalender</li><li>Nur sichtbar, wenn du den Bereich einschaltest</li></ul>
+            <img class="shot-m" src="img/fitness.jpg" alt="Fitness" loading="lazy">
           </div>
         </div>
         <div class="viewer">
@@ -396,8 +411,10 @@
             <img src="img/statistiken.jpg" alt="Statistiken" loading="lazy" data-zoom>
             <img src="img/kalender.jpg" alt="Kalender" loading="lazy" data-zoom>
             <img src="img/level.jpg" alt="Level und Ränge" loading="lazy" data-zoom>
+            <img src="img/vitrine.jpg" alt="Vitrine" loading="lazy" data-zoom>
+            <img src="img/fitness.jpg" alt="Fitness" loading="lazy" data-zoom>
           </div>
-          <div class="dots" id="dots"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+          <div class="dots" id="dots"><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
         </div>
       </div>
     </div>
@@ -439,16 +456,34 @@
           <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>
           <h3>Immer aktuell</h3><p>Neue Versionen kommen im Hintergrund und werden beim nächsten Start installiert.</p>
         </div>
+        <div class="tile w4 reveal" style="--c:var(--cyan)">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></div>
+          <h3>Pause ohne schlechtes Gewissen</h3><p>Ein paar Joker-Tage pro Monat und ein Urlaubsmodus für Reisen oder Krankheit. Deine Serien laufen weiter, Wochenziele und Challenges werden kleiner.</p>
+          <div class="crop" style="--pos:50% 40%"><img src="img/pause.jpg" alt="Pause und Joker" loading="lazy" data-zoom></div>
+        </div>
+        <div class="tile w2 reveal d1" style="--c:var(--sun)">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v8M4.9 10.9l1.4 1.4M2 18h2M20 18h2M17.7 12.3l1.4-1.4M22 22H2M8 6l4-4 4 4M16 18a4 4 0 0 0-8 0"/></svg></div>
+          <h3>Guten Morgen</h3><p>Beim ersten Öffnen am Tag fragt Habix kurz nach Stimmung und Schlaf und zeigt, was heute ansteht.</p>
+          <div class="mlist"><div><span>Stimmung</span><b>Gut</b></div><div><span>Schlaf</span><b>7:30 h</b></div><div><span>Training heute</span><b>Push</b></div><div><span>Termine</span><b>3</b></div></div>
+        </div>
       </div>
     </div>
   </section>
 
   <section style="padding-top:20px">
     <div class="wrap">
-      <div class="head reveal"><span class="eyebrow">Nur wenn du sie brauchst</span><h2>Zwei Bereiche <span class="grad">zum Freischalten</span></h2>
-        <p>Habix bleibt aufgeräumt. Arbeitszeit und Finanzen sind zuerst ausgeblendet und lassen sich mit einem Klick dazuschalten.</p></div>
+      <div class="head reveal"><span class="eyebrow">Nur wenn du sie brauchst</span><h2>Drei Bereiche <span class="grad">zum Freischalten</span></h2>
+        <p>Habix bleibt aufgeräumt. Fitness, Arbeitszeit und Finanzen sind zuerst ausgeblendet und lassen sich mit einem Klick dazuschalten.</p></div>
       <div class="duo">
         <div class="tile unlock reveal">
+          <div class="crop" style="--pos:50% 0%"><img src="img/ernaehrung.jpg" alt="Fitness mit Ernährung und Kalorien" loading="lazy" data-zoom></div>
+          <div class="body">
+            <span class="lockpill"><svg class="i closed"><use href="#lock"/></svg><svg class="i open"><use href="#unlock"/></svg><span class="t1">Freischaltbar</span><span class="t2">Freigeschaltet</span></span>
+            <h3 style="margin:14px 0 8px;font-size:26px">Fitness</h3>
+            <p class="muted">Trainingsplan, Sätze live abhaken, Kalorien und Makros, Wasser, Schlaf und Gewicht. Mit eigenem Fitness-Level neben deinem Gesamt-Level.</p>
+          </div>
+        </div>
+        <div class="tile unlock reveal d1">
           <div class="crop" style="--pos:50% 0%"><img src="img/stundenplan.jpg" alt="Stundenplan mit Stempeluhr" loading="lazy" data-zoom></div>
           <div class="body">
             <span class="lockpill"><svg class="i closed"><use href="#lock"/></svg><svg class="i open"><use href="#unlock"/></svg><span class="t1">Freischaltbar</span><span class="t2">Freigeschaltet</span></span>
@@ -456,7 +491,7 @@
             <p class="muted">Stundenplan in halben Stunden, Ein- und Ausstempeln mit Pausen, auch über das Symbol in der Taskleiste. Grün heißt gearbeitet, rot heißt verpasst.</p>
           </div>
         </div>
-        <div class="tile unlock reveal d1">
+        <div class="tile unlock reveal d2">
           <div class="crop" style="--pos:50% 0%"><img src="img/finanzen.jpg" alt="Finanzen mit Kategorien und Abos" loading="lazy" data-zoom></div>
           <div class="body">
             <span class="lockpill"><svg class="i closed"><use href="#lock"/></svg><svg class="i open"><use href="#unlock"/></svg><span class="t1">Freischaltbar</span><span class="t2">Freigeschaltet</span></span>
@@ -474,6 +509,7 @@
       <div class="faq reveal">
         <details><summary>Kostet Habix etwas?<i></i></summary><p>Nein. Habix ist komplett kostenlos, ohne Abo, ohne Werbung und ohne Konto.</p></details>
         <details><summary>Windows warnt beim Installieren. Ist das normal?<i></i></summary><p>Ja. Windows zeigt „Der Computer wurde durch Windows geschützt“, weil die Datei nicht mit einem kostenpflichtigen Zertifikat signiert ist. Klick auf „Weitere Informationen“ und dann auf „Trotzdem ausführen“. Den Quellcode kannst du auf GitHub ansehen.</p></details>
+        <details><summary>Was passiert mit meinen Serien, wenn ich krank oder im Urlaub bin?<i></i></summary><p>Nichts Schlimmes. Klick auf der Startseite auf „Pause“ und starte den Urlaubsmodus, oder setz für einzelne verpasste Tage einen Joker (standardmäßig zwei pro Monat). Solche Tage zählen nicht als verpasst, deine Serien laufen weiter.</p></details>
         <details><summary>Wo liegen meine Daten?<i></i></summary><p>In einer Datei auf deinem Rechner, unter Windows normalerweise in %APPDATA%\Habix, auf dem Mac in ~/Library/Application Support/Habix. In den Einstellungen kannst du einen anderen Ordner wählen, Sicherungen anlegen und wiederherstellen.</p></details>
         <details><summary>Kann ich Habix auf Laptop und Desktop nutzen?<i></i></summary><p>Ja. Wähl in den Einstellungen unter „Daten“ auf beiden PCs denselben Ordner in OneDrive, Dropbox oder Google Drive. Speichert ein PC, übernimmt der andere die Änderungen nach ein paar Sekunden.</p></details>
         <details><summary>Der Mac sagt, Habix kann nicht geöffnet werden. Was tun?<i></i></summary><p>Das ist normal, weil Habix nicht bei Apple registriert ist. Zieh Habix aus der heruntergeladenen Datei in den Ordner „Programme“ und öffne es einmal. Wenn die Warnung kommt, klick auf „Fertig“, öffne <b>Systemeinstellungen → Datenschutz &amp; Sicherheit</b> und klick unten bei Habix auf „Dennoch öffnen“. Danach startet Habix ganz normal.</p></details>

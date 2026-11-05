@@ -19,6 +19,7 @@ const SUGGESTIONS = [
   { name: 'Vokabeln lernen', icon: 'languages', color: '#c4f06b', time: 'morning' },
 ];
 const DAYPARTS = [
+  { id: 'night', label: 'Nachts', icon: 'moon' },
   { id: 'morning', label: 'Morgens', icon: 'sunrise' },
   { id: 'midday', label: 'Mittags', icon: 'sun' },
   { id: 'evening', label: 'Abends', icon: 'moon-star' },
@@ -40,8 +41,8 @@ const MOODS = [
 ];
 const DEFAULT_SETTINGS = {
   remindHabits: true, remindHabitsAt: '20:00', remindShift: true, remindShiftMin: 10, remindClockOut: true,
-  weeklyReview: true, closeToTray: true, autostart: false, timeZone: 'system', remindEvents: true, remindEventsMin: 15, lang: 'de',
-  xpGoal: 60,
+  weeklyReview: true, morningCheck: true, closeToTray: true, autostart: false, timeZone: 'system', remindEvents: true, remindEventsMin: 15, lang: 'de',
+  xpGoal: 60, jokersPerMonth: 2,
 };
 
 /* ================= Zustand ================= */
@@ -52,7 +53,9 @@ const DEFAULT_SETTINGS = {
 const emptyState = () => ({
   version: 1, habits: [], log: {}, amounts: {}, journal: {}, badges: {}, demo: false, plan: {}, sessions: [],
   calendars: [], calEvents: [], calShowShifts: true, tasks: [], workEnabled: false, onboarded: false, levelSeen: null,
+  jokers: {}, pauses: [], cosmetic: { title: null, color: null },
   finance: { enabled: false, tx: [], rules: {}, subs: [], dismissed: [], budgets: {}, imports: [] },
+  fitness: { enabled: false, profile: null, goals: null, weights: {}, plans: [], workouts: [], live: null, food: {}, foods: [], water: {}, weekGoal: 3, stepGoal: 8000, restSec: 90, measures: {}, cardio: [], steps: {}, sleep: {}, mealTpls: [], recipes: [], supps: [], suppLog: {}, fasting: { start: null, goal: 16, log: [] }, achSeen: null },
   settings: { ...DEFAULT_SETTINGS }, notified: {}, lastReview: null, lastBackup: null,
 });
 let state = emptyState();
@@ -90,18 +93,36 @@ function parseNum(str) {
 }
 function currentDaypart() {
   const h = new Date().getHours();
-  return h >= 4 && h < 11 ? 'morning' : h >= 11 && h < 17 ? 'midday' : 'evening';
+  return h < 6 ? 'night' : h < 12 ? 'morning' : h < 18 ? 'midday' : 'evening';
 }
 
+// Joker-Tage und Pausen (Urlaub, krank): solche Tage zählen nicht als verpasst, Serien laufen einfach weiter.
+// Was man an so einem Tag trotzdem schafft, zählt ganz normal. Eine Pause ohne Ende läuft bis heute.
+let excusedCache = null;
+function excusedDays() {
+  const j = state.jokers || {}, p = state.pauses || [], t = todayKey();
+  if (excusedCache && excusedCache.j === j && excusedCache.p === p && excusedCache.t === t) return excusedCache.set;
+  const set = new Set(Object.keys(j));
+  for (const x of p) for (let k = x.from, end = x.to || t; k <= end; k = addDays(k, 1)) set.add(k);
+  excusedCache = { j, p, t, set };
+  return set;
+}
+const excused = (k) => excusedDays().has(k);
+
+// An geschützten Tagen zählt nur ein perfekter Tag, alles andere ist neutral (null)
 function dayRate(k, habits = active()) {
   const s = habits.filter((h) => scheduled(h, k));
   if (!s.length) return null;
-  return s.filter((h) => done(h, k)).length / s.length;
+  const r = s.filter((h) => done(h, k)).length / s.length;
+  return r < 1 && excused(k) ? null : r;
 }
 
 function periodRate(from, to, habits = active()) {
   let s = 0, d = 0;
-  for (const k of range(from, to)) for (const h of habits) if (scheduled(h, k)) { s++; if (done(h, k)) d++; }
+  for (const k of range(from, to)) {
+    const ex = excused(k);
+    for (const h of habits) if (scheduled(h, k)) { const ok = done(h, k); if (ex && !ok) continue; s++; if (ok) d++; }
+  }
   return { rate: s ? d / s : null, done: d, scheduled: s };
 }
 
@@ -112,7 +133,7 @@ function streak(h) {
   let k = todayKey(), n = 0;
   if (scheduled(h, k) && !done(h, k)) k = addDays(k, -1);
   while (k >= h.createdAt) {
-    if (scheduled(h, k)) { if (done(h, k)) n++; else break; }
+    if (scheduled(h, k)) { if (done(h, k)) n++; else if (!excused(k)) break; }
     k = addDays(k, -1);
   }
   return n;
@@ -123,7 +144,7 @@ function bestStreak(h) {
   const today = todayKey();
   for (const k of range(h.createdAt, today)) {
     if (!scheduled(h, k)) continue;
-    if (done(h, k)) { cur++; best = Math.max(best, cur); } else if (k !== today) cur = 0;
+    if (done(h, k)) { cur++; best = Math.max(best, cur); } else if (k !== today && !excused(k)) cur = 0;
   }
   return best;
 }
@@ -411,6 +432,7 @@ function viewToday() {
       ${bars(week)}
     </article>`,
     xp: xpCard(),
+    challenges: challengesCard(),
     timeline: timelineCard(),
     habits: `
     <article class="card fade-in">
@@ -424,6 +446,10 @@ function viewToday() {
     </article>`,
     tasks: todayTasksCard(''),
     events: todayEventsCard(),
+    training: trainingTodayCard(),
+    food: foodTodayCard(),
+    work: workTodayCard(),
+    money: moneyTodayCard(),
     month: monthCard(),
     journal: journalCard(today),
     trend: `
@@ -513,10 +539,11 @@ function habitRow(h) {
       ${last7.map((k) => {
         const sch = scheduled(h, k);
         const part = amt && !done(h, k) && amountOf(h, k) > 0;
-        return `<button class="dot ${done(h, k) ? 'on' : ''} ${part ? 'part' : ''} ${sch ? '' : 'off'} ${k === today ? 'today' : ''}"
+        const ex = sch && !done(h, k) && excused(k);
+        return `<button class="dot ${done(h, k) ? 'on' : ''} ${part ? 'part' : ''} ${sch ? '' : 'off'} ${ex ? 'excused' : ''} ${k === today ? 'today' : ''}"
           ${part ? `style="--fill:${Math.round((amountOf(h, k) / h.target) * 100)}%"` : ''}
           ${sch ? `data-action="toggle" data-id="${h.id}" data-day="${k}"` : 'disabled'}
-          title="${esc(fmtLong(k))}${sch ? (amt ? ` · ${fmtNum(amountOf(h, k))} / ${fmtNum(h.target)} ${esc(h.unit || '')}` : '') : ' (nicht geplant)'}">${WD[wdOf(k)][0]}</button>`;
+          title="${esc(fmtLong(k))}${sch ? (amt ? ` · ${fmtNum(amountOf(h, k))} / ${fmtNum(h.target)} ${esc(h.unit || '')}` : '') : ' (nicht geplant)'}${ex ? ` · ${dt('geschützt', 'protected')}` : ''}">${WD[wdOf(k)][0]}</button>`;
       }).join('')}
     </div>
     ${amt ? amountControl(h, today) : `<button class="check ${isDone ? 'on' : ''}" data-action="toggle" data-id="${h.id}" data-day="${today}"
@@ -907,7 +934,7 @@ function viewHabits() {
     <div class="head-actions">
       <div class="week-nav">
         <button class="icon-btn" data-action="month" data-dir="-1" aria-label="Voriger Monat">${icon('chevron-left')}</button>
-        <button class="btn small ${isNow ? 'ghost' : ''}" data-action="month" data-dir="0">Dieser Monat</button>
+        ${navNowBtn('month', navMonthLabel(mm.first.slice(0, 7)), isNow, dt('Zum aktuellen Monat', 'Go to this month'))}
         <button class="icon-btn" data-action="month" data-dir="1" aria-label="Nächster Monat">${icon('chevron-right')}</button>
       </div>
       <button class="btn primary" data-action="new-habit">${icon('plus')}Neue Gewohnheit</button>
@@ -1071,7 +1098,7 @@ function viewSchedule() {
     <div class="head-actions">
       <div class="week-nav">
         <button class="icon-btn" data-action="week" data-dir="-1" aria-label="Vorige Woche">${icon('chevron-left')}</button>
-        <button class="btn small ${ws === mondayOf(today) ? 'ghost' : ''}" data-action="week" data-dir="0">Diese Woche</button>
+        ${navNowBtn('week', navWeekLabel(ws), ws === mondayOf(today), dt('Zur aktuellen Woche', 'Go to this week'))}
         <button class="icon-btn" data-action="week" data-dir="1" aria-label="Nächste Woche">${icon('chevron-right')}</button>
       </div>
       <button class="btn ${running ? 'danger' : 'primary'}" data-action="clock">${icon(running ? 'log-out' : 'log-in')}${running ? 'Ausstempeln' : 'Einstempeln'}</button>
@@ -1504,6 +1531,7 @@ function loadDemo() {
   }
   syncBadges(false);
   if (typeof loadFinanceDemo === 'function') loadFinanceDemo();
+  if (typeof loadFitnessDemo === 'function') loadFitnessDemo();
   save();
   toast('Beispieldaten geladen');
   render('enter');
@@ -1516,6 +1544,7 @@ function clearDemo(notify = true) {
     journal: Object.fromEntries(Object.entries(state.journal).filter(([, j]) => !j.demo)),
   };
   if (typeof clearFinanceDemo === 'function') clearFinanceDemo();
+  if (typeof clearFitnessDemo === 'function') clearFitnessDemo();
   save();
   if (notify) { toast('Beispieldaten gelöscht'); render('enter'); renderClock(); }
 }
@@ -1613,11 +1642,13 @@ function burst(el, color) {
 function applyProgress(root) {
   root.querySelectorAll('[data-anim="w"], [data-anim="h"], .meter > span').forEach((el) => {
     const v = parseFloat(el.style.width || el.style.height);
-    if (Number.isFinite(v)) el.style.setProperty('--p', progHue(v / 100));
+    if (el.dataset.hue) el.style.setProperty('--p', el.dataset.hue);
+    else if (Number.isFinite(v)) el.style.setProperty('--p', progHue(v / 100));
   });
   root.querySelectorAll('[data-anim="ring"]').forEach((el) => {
     const full = Number(el.dataset.full), off = parseFloat(el.style.strokeDashoffset);
-    if (full) el.style.setProperty('--p', progHue(1 - off / full));
+    if (el.dataset.hue) el.style.setProperty('--p', el.dataset.hue);
+    else if (full) el.style.setProperty('--p', progHue(1 - off / full));
   });
 }
 
@@ -1633,7 +1664,8 @@ function refreshSpot() {
 }
 
 function moveNavIndicator() {
-  const a = document.querySelector('.nav .nav-item.active');
+  let a = document.querySelector('.nav .nav-item.active');
+  if (!state.sidebarMini && a?.closest('.nav-group.collapsed')) a = null;
   const ind = document.querySelector('.nav-indicator');
   if (!ind) return;
   ind.style.opacity = a ? '1' : '0';
@@ -1641,6 +1673,79 @@ function moveNavIndicator() {
   ind.style.transform = `translateY(${a.offsetTop}px)`;
   ind.style.height = `${a.offsetHeight}px`;
 }
+
+// Menü-Bereiche auf- und zuklappen; welche zu sind, steht in state.navCollapsed
+function applyNavGroups() {
+  const closed = state.navCollapsed || [];
+  document.querySelectorAll('[data-nav-group]').forEach((h) => {
+    const id = h.dataset.navGroup;
+    const g = document.querySelector(`.nav-group[data-group="${id}"]`);
+    const c = closed.includes(id);
+    h.setAttribute('aria-expanded', String(!c));
+    h.classList.toggle('collapsed', c);
+    g.classList.toggle('collapsed', c);
+    // Eingefahren zeigt das Menü immer alle Symbole
+    g.inert = c && !state.sidebarMini;
+    // Zugeklappt, aber man ist gerade auf einer Seite darin: Überschrift hervorheben
+    h.classList.toggle('has-active', c && !!g.querySelector('.nav-item.active'));
+  });
+  // Animation erst nach dem ersten Zeichnen, damit beim Start nichts zuklappt
+  const nav = document.querySelector('.nav');
+  if (!nav.classList.contains('nav-ready')) requestAnimationFrame(() => requestAnimationFrame(() => nav.classList.add('nav-ready')));
+}
+
+function toggleNavGroup(id) {
+  const closed = new Set(state.navCollapsed || []);
+  if (closed.has(id)) closed.delete(id); else closed.add(id);
+  state.navCollapsed = [...closed];
+  save();
+  applyNavGroups();
+  followNavIndicator(360);
+}
+
+// Die Markierung läuft während einer Animation mit
+function followNavIndicator(ms, done) {
+  const nav = document.querySelector('.nav');
+  nav.classList.add('nav-moving');
+  const t0 = performance.now();
+  const step = () => {
+    moveNavIndicator();
+    if (performance.now() - t0 < ms) requestAnimationFrame(step);
+    else { nav.classList.remove('nav-moving'); moveNavIndicator(); done?.(); }
+  };
+  requestAnimationFrame(step);
+}
+
+// Ganzes Menü nach links einfahren, dann bleiben nur die Symbole (state.sidebarMini)
+function applySidebarMini() {
+  const mini = !!state.sidebarMini;
+  document.querySelector('.app').classList.toggle('sb-mini', mini);
+  const t = document.getElementById('sb-toggle');
+  t.setAttribute('aria-expanded', String(!mini));
+  t.setAttribute('aria-label', mini ? dt('Menü ausfahren', 'Expand menu') : dt('Menü einfahren', 'Collapse menu'));
+  t.title = mini ? dt('Menü ausfahren (Strg+B)', 'Expand menu (Ctrl+B)') : dt('Menü einfahren (Strg+B)', 'Collapse menu (Ctrl+B)');
+  // Eingefahren gibt es die Namen als Tooltip
+  document.querySelectorAll('.sidebar .nav-item').forEach((b) => {
+    const label = b.querySelector('span')?.textContent.trim();
+    if (mini && label) b.title = label; else b.removeAttribute('title');
+  });
+}
+
+function toggleSidebarMini() {
+  state.sidebarMini = !state.sidebarMini;
+  save();
+  applySidebarMini();
+  applyNavGroups();
+  // Inhalte, die sich an der Breite ausrichten, nach der Animation neu messen lassen
+  followNavIndicator(380, () => window.dispatchEvent(new Event('resize')));
+}
+
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'b' && !e.target.closest('input, textarea, [contenteditable="true"]')) {
+    e.preventDefault();
+    toggleSidebarMini();
+  }
+});
 
 function renderSidebar() {
   const today = todayKey();
@@ -1653,6 +1758,9 @@ function renderSidebar() {
   document.querySelectorAll('.nav-item').forEach((b) => b.classList.toggle('active', b.dataset.view === ui.view));
   document.getElementById('nav-schedule').classList.toggle('locked', !state.workEnabled);
   document.getElementById('nav-finance').classList.toggle('locked', !state.finance?.enabled);
+  for (const v of ['fitness', 'training', 'nutrition']) document.getElementById(`nav-${v}`).classList.toggle('locked', !state.fitness?.enabled);
+  applySidebarMini();
+  applyNavGroups();
   const dueTasks = state.tasks.filter((t) => !t.done && t.due && t.due <= today).length;
   const tc = document.getElementById('nav-task-count');
   tc.textContent = dueTasks || '';
@@ -1667,10 +1775,11 @@ function render(mode = 'enter') {
   const scroll = main.scrollTop;
   const schedScroll = document.getElementById('sched-scroll')?.scrollTop;
   view.innerHTML = ui.view === 'stats' ? viewStats() : ui.view === 'habits' ? viewHabits() : ui.view === 'schedule' ? viewSchedule()
-    : ui.view === 'finance' ? viewFinance() : ui.view === 'calendar' ? viewCalendar() : ui.view === 'tasks' ? viewTasks() : ui.view === 'settings' ? viewSettings() : viewToday();
+    : ui.view === 'finance' ? viewFinance() : ui.view === 'fitness' ? viewFitness() : ui.view === 'training' ? viewTraining() : ui.view === 'nutrition' ? viewNutrition() : ui.view === 'calendar' ? viewCalendar() : ui.view === 'tasks' ? viewTasks() : ui.view === 'settings' ? viewSettings() : viewToday();
   renderSidebar();
   if (typeof syncTitleThought === 'function') syncTitleThought();
   lucide.createIcons();
+  if (ui.view === 'settings') layoutSettings();
   runAnimations(view, mode, ui.view);
   applyProgress(view);
   refreshSpot();
@@ -1691,10 +1800,115 @@ function render(mode = 'enter') {
   }
 }
 
+/* Mittlerer Knopf beim Blättern: zeigt, welcher Tag, welche Woche oder welcher Monat gerade zu sehen ist.
+   Ein Klick springt trotzdem zurück zu jetzt. Ist man woanders, steht ein kleiner Zurück-Pfeil davor. */
+function navNowBtn(action, label, isNow, hint) {
+  return `<button class="btn small nav-now ${isNow ? 'ghost' : ''}" data-action="${action}" data-dir="0" title="${esc(hint)}" aria-label="${esc(`${label} · ${hint}`)}">${isNow ? '' : icon('undo-2')}<span>${esc(label)}</span></button>`;
+}
+// „November“ im laufenden Jahr, sonst „November 2027“
+function navMonthLabel(ym) {
+  const d = parseKey(`${ym}-01`);
+  const sameYear = ym.slice(0, 4) === todayKey().slice(0, 4);
+  return new Intl.DateTimeFormat(LOCALE(), sameYear ? { month: 'long' } : { month: 'long', year: 'numeric' }).format(d);
+}
+const navWeekLabel = (monday) => dt(`KW ${isoWeek(monday)}`, `Week ${isoWeek(monday)}`);
+function navDayLabel(k) {
+  const t = todayKey();
+  if (k === t) return dt('Heute', 'Today');
+  if (k === addDays(t, -1)) return dt('Gestern', 'Yesterday');
+  if (k === addDays(t, 1)) return dt('Morgen', 'Tomorrow');
+  return new Intl.DateTimeFormat(LOCALE(), { weekday: 'short', day: 'numeric', month: 'short' }).format(parseKey(k));
+}
+
+/* Blättern (Tag, Woche, Monat, Jahr): Boxen, deren Inhalt sich ändert, gleiten von ihrem Platz nach links hinaus,
+   die neuen kommen von rechts herein. Zurückblättern läuft andersherum. Boxen, die gleich bleiben, stehen still.
+   Dafür bleibt eine Kopie der alten Ansicht kurz über der neuen liegen. */
+const SLIDE_SEL = '.card';
+const slideDir = (from, to) => (to > from ? 1 : to < from ? -1 : 0);
+// Was eine Box zeigt: Text und die Tage, auf die sie sich bezieht
+const slideSig = (el) => el.textContent.replace(/\s+/g, ' ') + [...el.querySelectorAll('[data-day],[data-date],[data-month]')].map((x) => x.dataset.day || x.dataset.date || x.dataset.month).join(',');
+const topCards = (root) => [...root.querySelectorAll(SLIDE_SEL)].filter((el) => !el.parentElement.closest(SLIDE_SEL));
+let slideGhost = null, slideTimer;
+
+function slideRender(dir) {
+  const view = document.getElementById('view');
+  slideGhost?.remove();
+  slideGhost = null;
+  if (reduceMotion || !dir) { render('update'); return; }
+  const oldCards = topCards(view);
+  const sigs = oldCards.map(slideSig);
+  const oldEyebrow = view.querySelector('.head .eyebrow')?.textContent;
+  const oldNow = [...view.querySelectorAll('.nav-now span')].map((s) => s.textContent);
+  // Kopie der alten Ansicht samt Scroll-Positionen innerer Bereiche
+  const scrolled = [...view.querySelectorAll('*')].map((el, i) => [i, el.scrollTop, el.scrollLeft]).filter(([, t, l]) => t || l);
+  const ghost = view.cloneNode(true);
+  ghost.removeAttribute('id');
+  ghost.classList.remove('enter');
+  ghost.classList.add('slide-ghost');
+  ghost.setAttribute('aria-hidden', 'true');
+  ghost.inert = true;
+  ghost.style.top = `${view.offsetTop}px`;
+  ghost.style.left = `${view.offsetLeft}px`;
+  ghost.style.width = `${view.offsetWidth}px`;
+
+  render('update');
+
+  const newCards = topCards(view);
+  const all = newCards.length !== oldCards.length;
+  const changed = newCards.map((el, i) => all || slideSig(el) !== sigs[i]);
+  if (!changed.some(Boolean)) return;
+  view.parentElement.appendChild(ghost);
+  const ghostEls = ghost.querySelectorAll('*');
+  for (const [i, t, l] of scrolled) { if (ghostEls[i]) { ghostEls[i].scrollTop = t; ghostEls[i].scrollLeft = l; } }
+  const ghostCards = topCards(ghost);
+  // Die alten Boxen sind schon fast weg, wenn die neuen sichtbar werden, so liegen kaum zwei halb durchsichtig übereinander.
+  // Kurze Wege, sanftes Abbremsen und ein Hauch Tiefe (leicht verkleinert) wirken ruhiger als weite Sprünge.
+  const leave = 'cubic-bezier(.4, 0, .7, .2)', arrive = 'cubic-bezier(.22, 1, .36, 1)';
+  view.classList.add('sliding');
+  let n = 0, last = 0;
+  ghostCards.forEach((el, i) => {
+    if (!all && !changed[i]) return;
+    el.classList.add('slide-out');
+    el.animate([
+      { transform: 'translate3d(0, 0, 0) scale(1)', opacity: 1 },
+      { transform: `translate3d(${-dir * 22}px, 0, 0) scale(.99)`, opacity: 0, offset: .8 },
+      { transform: `translate3d(${-dir * 28}px, 0, 0) scale(.985)`, opacity: 0 },
+    ], { duration: 200, easing: leave, fill: 'both' });
+  });
+  n = 0;
+  newCards.forEach((el, i) => {
+    if (!changed[i]) return;
+    const delay = 110 + Math.min(n++, 5) * 24;
+    last = Math.max(last, delay + 560);
+    el.style.willChange = 'transform, opacity';
+    el.animate([
+      { transform: `translate3d(${dir * 56}px, 0, 0) scale(.985)`, opacity: 0 },
+      { transform: `translate3d(${dir * 10}px, 0, 0) scale(.997)`, opacity: 1, offset: .55 },
+      { transform: 'translate3d(0, 0, 0) scale(1)', opacity: 1 },
+    ], { duration: 560, delay, easing: arrive, fill: 'backwards' }).finished.then(() => { el.style.willChange = ''; }, () => {});
+  });
+  view.querySelectorAll('.nav-now span').forEach((s, i) => {
+    if (s.textContent === oldNow[i]) return;
+    s.animate([{ transform: `translate3d(${dir * 10}px, 0, 0)`, opacity: 0 }, { transform: 'translate3d(0, 0, 0)', opacity: 1 }],
+      { duration: 320, easing: arrive, fill: 'backwards' });
+  });
+  // Monat oder Woche oben in der Überschrift gleitet mit
+  const eb = view.querySelector('.head .eyebrow');
+  if (eb && oldEyebrow !== undefined && eb.textContent !== oldEyebrow) {
+    eb.animate([{ transform: `translate3d(${dir * 14}px, 0, 0)`, opacity: 0 }, { transform: 'translate3d(0, 0, 0)', opacity: 1 }],
+      { duration: 380, delay: 40, easing: arrive, fill: 'backwards' });
+  }
+  slideGhost = ghost;
+  setTimeout(() => { if (slideGhost === ghost) slideGhost = null; ghost.remove(); }, 340);
+  clearTimeout(slideTimer);
+  slideTimer = setTimeout(() => view.classList.remove('sliding'), last);
+}
+
 let navTimer;
 function go(view) {
   if (view === 'schedule' && !state.workEnabled) { openWorkUnlock(); return; }
   if (view === 'finance' && !state.finance?.enabled) { openFinanceUnlock(); return; }
+  if (['fitness', 'training', 'nutrition'].includes(view) && !state.fitness?.enabled) { openFitnessUnlock(); return; }
   if (view === ui.view) return;
   ui.view = view;
   ui.confirmReset = false;
@@ -1704,6 +1918,7 @@ function go(view) {
   const el = document.getElementById('view');
   const main = document.querySelector('.scroller');
   clearTimeout(navTimer);
+  slideGhost?.remove();
   if (reduceMotion) { main.scrollTop = 0; render('enter'); return; }
   el.classList.add('leave');
   navTimer = setTimeout(() => {
@@ -1806,6 +2021,9 @@ function applyTheme(mode, fromEl) {
 /* ================= Events ================= */
 
 document.addEventListener('click', (e) => {
+  if (e.target.closest('#sb-toggle')) { toggleSidebarMini(); return; }
+  const navGroup = e.target.closest('[data-nav-group]');
+  if (navGroup) { toggleNavGroup(navGroup.dataset.navGroup); return; }
   const nav = e.target.closest('.nav-item');
   if (nav) { go(nav.dataset.view); return; }
 
@@ -1856,15 +2074,16 @@ document.addEventListener('click', (e) => {
       const dir = Number(el.dataset.dir);
       const cur = ui.weekStart || mondayOf(todayKey());
       ui.weekStart = dir === 0 ? mondayOf(todayKey()) : addDays(cur, dir * 7);
-      render('enter');
+      slideRender(slideDir(cur, ui.weekStart));
       break;
     }
     case 'month': {
       const dir = Number(el.dataset.dir);
       const [y, mo] = (ui.month || todayKey().slice(0, 7)).split('-').map(Number);
       const d = dir === 0 ? new Date() : new Date(y, mo - 1 + dir, 1);
+      const from = `${y}-${pad(mo)}`;
       ui.month = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
-      render('enter');
+      slideRender(slideDir(from, ui.month));
       break;
     }
     case 'session-del': ui.confirmSession = el.dataset.id; render('update'); break;

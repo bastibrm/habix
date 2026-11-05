@@ -18,7 +18,12 @@ const DASH_CARDS = {
   habits: { zone: 'main', de: 'Heute dran', en: 'Due today' },
   tasks: { zone: 'main', de: 'Aufgaben für heute', en: 'Tasks for today' },
   events: { zone: 'side', de: 'Termine heute', en: 'Events today' },
+  training: { zone: 'side', de: 'Training heute', en: 'Training today', need: () => state.fitness?.enabled },
+  food: { zone: 'side', de: 'Ernährung heute', en: 'Nutrition today', need: () => state.fitness?.enabled },
+  work: { zone: 'side', de: 'Arbeit heute', en: 'Work today', need: () => state.workEnabled },
+  money: { zone: 'side', de: 'Finanzen', en: 'Finances', need: () => state.finance?.enabled },
   month: { zone: 'side', de: 'Dein Monat', en: 'Your month' },
+  challenges: { zone: 'side', de: 'Wochen-Challenges', en: 'Weekly challenges' },
   journal: { zone: 'side', de: 'Stimmung', en: 'Mood' },
   trend: { zone: 'side', de: 'Trend', en: 'Trend' },
   compare: { zone: 'side', de: 'Wochenvergleich', en: 'Week comparison' },
@@ -46,7 +51,8 @@ const ZONES = ['top', 'main', 'side'];
 
 function dashZones() {
   const order = dashState().order;
-  const all = Object.keys(DASH_CARDS);
+  // Karten gesperrter Bereiche gibt es gar nicht erst
+  const all = Object.keys(DASH_CARDS).filter((id) => !DASH_CARDS[id].need || DASH_CARDS[id].need());
   const placed = new Set();
   const out = { top: [], main: [], side: [] };
   for (const z of ZONES) {
@@ -100,6 +106,7 @@ function dashToolbar() {
 function dashHead() {
   const today = todayKey();
   const lines = [];
+  lines.push(...pausePills(today));
   if (dashShown('next')) lines.push(nextUpPill());
   if (dashShown('birthdays')) lines.push(...birthdayPills(today));
   if (dashShown('streaks')) lines.push(...streakPills(today));
@@ -111,6 +118,7 @@ function dashHead() {
       <h1>${greeting()}</h1>
     </div>
     <div class="head-actions">
+      <button class="btn ghost" data-action="pause-open" title="${dt('Joker-Tage und Urlaubsmodus', 'Joker days and vacation mode')}">${icon('shield-check')}${dt('Pause', 'Pause')}</button>
       <button class="btn ghost" data-action="dash-edit" title="${dt('Startseite anpassen', 'Customize home')}">${icon('sliders-horizontal')}${dt('Anpassen', 'Customize')}</button>
       <button class="btn primary" data-action="new-habit">${icon('plus')}Neue Gewohnheit</button>
     </div>
@@ -178,7 +186,7 @@ function birthdayPills(today) {
 /* ================= Serien-Hinweis am Abend ================= */
 
 function streakPills(today) {
-  if (new Date().getHours() < 18) return [];
+  if (new Date().getHours() < 18 || excused(today)) return [];
   const risk = active()
     .filter((h) => scheduled(h, today) && !done(h, today))
     .map((h) => ({ h, n: streak(h) }))
@@ -231,7 +239,35 @@ function syncTitleThought() {
   const on = ui.view === 'today' && active().length && dashShown('thought');
   el.innerHTML = on ? `${icon('quote')}<span>${esc(thoughtOfDay(todayKey()))}</span>` : '';
   el.title = on ? thoughtOfDay(todayKey()) : '';
+  requestAnimationFrame(() => layoutThought(undefined, true));
 }
+
+// Der Gedanke steht mittig, rückt aber immer so weit nach links, dass er nicht unter die Level-Anzeigen rutscht.
+// Fährt eine Anzeige beim Überfahren den XP-Stand aus (grow), rückt er im selben Tempo mit.
+function layoutThought(grow, instant = false) {
+  if (grow === undefined) { const h = document.querySelector('.title-actions .level-pill:hover'); grow = h ? pillGrow(h) : 0; }
+  const tt = document.getElementById('title-thought');
+  const actions = document.querySelector('.title-actions');
+  if (!tt || !actions) return;
+  if (!tt.offsetWidth) { tt.style.setProperty('--tt-shift', '0px'); return; }
+  const cur = parseFloat(tt.style.getPropertyValue('--tt-shift')) || 0;
+  const r = tt.getBoundingClientRect();
+  const right = r.right + cur, left = r.left + cur;
+  let shift = Math.max(0, right + grow + 24 - actions.getBoundingClientRect().left);
+  // Nicht in die Seitenleiste schieben
+  shift = Math.min(shift, Math.max(0, left - (document.querySelector('.sidebar')?.getBoundingClientRect().right || 0) - 24));
+  if (instant) { tt.style.transition = 'none'; tt.style.setProperty('--tt-shift', `${Math.round(shift)}px`); void tt.offsetWidth; tt.style.transition = ''; return; }
+  tt.style.setProperty('--tt-shift', `${Math.round(shift)}px`);
+}
+// Text (höchstens 110 px) plus Abstand, Innenabstand und Trennstrich
+const pillGrow = (pill) => { const xp = pill.querySelector('.lv-xp'); return xp ? Math.min(110, xp.scrollWidth) + 17 : 0; };
+for (const id of ['level-card', 'fit-level-card']) {
+  const el = document.getElementById(id);
+  // Ruhestellung merken, beim Verlassen genau dorthin zurück (die Anzeige ist dann noch ausgefahren)
+  el?.addEventListener('mouseenter', () => { el.ttRest = document.getElementById('title-thought')?.style.getPropertyValue('--tt-shift') || '0px'; layoutThought(pillGrow(el)); });
+  el?.addEventListener('mouseleave', () => document.getElementById('title-thought')?.style.setProperty('--tt-shift', el.ttRest || '0px'));
+}
+window.addEventListener('resize', () => layoutThought(undefined, true));
 
 function thoughtOfDay(k) {
   const d = parseKey(k);
@@ -283,7 +319,11 @@ function timelineCard() {
   const timed = insts.filter((i) => !i.allDay);
   const allDay = insts.filter((i) => i.allDay && !(i.ev.task && i.ev.done));
   const dayStartMs = dayStart(today);
-  const firstH = Math.min(6, ...timed.map((i) => new Date(Math.max(i.startMs, dayStartMs)).getHours()));
+  const due = active().filter((h) => scheduled(h, today));
+  // Nachts (0 bis 6 Uhr) nur zeigen, wenn gerade Nacht ist oder nachts etwas ansteht
+  const showNight = currentDaypart() === 'night' || due.some((h) => daypartOf(h) === 'night')
+    || timed.some((i) => i.startMs < dayStartMs + 6 * 3600000);
+  const firstH = showNight ? 0 : 6;
   const span = (24 - firstH) * 60;
   const pos = (ms) => clamp01(((ms - dayStartMs) / 60000 - firstH * 60) / span) * 100;
 
@@ -298,8 +338,8 @@ function timelineCard() {
   }).join('');
 
   // Tageszeiten der Gewohnheiten als Bänder
-  const due = active().filter((h) => scheduled(h, today));
-  const parts = [['morning', 4, 11, 'Morgens', 'Morning'], ['midday', 11, 17, 'Mittags', 'Midday'], ['evening', 17, 24, 'Abends', 'Evening']].map(([id, a, b, de, en]) => {
+  const bands = [...(showNight ? [['night', 0, 6, 'Nachts', 'Night']] : []), ['morning', 6, 12, 'Morgens', 'Morning'], ['midday', 12, 18, 'Mittags', 'Midday'], ['evening', 18, 24, 'Abends', 'Evening']];
+  const parts = bands.map(([id, a, b, de, en]) => {
     const hs = due.filter((h) => daypartOf(h) === id);
     const open = hs.filter((h) => !done(h, today)).length;
     const a2 = Math.max(a, firstH);
@@ -646,8 +686,125 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && drag?.st
 
 /* ================= Aktionen und Takt ================= */
 
+/* ================= Bereiche: Fitness, Arbeit, Finanzen ================= */
+// Diese Karten gibt es nur, wenn der Bereich freigeschaltet ist. Sonst tauchen sie weder auf der Startseite noch beim Anpassen auf.
+
+const relDay = (k) => (k === todayKey() ? dt('heute', 'today') : k === addDays(todayKey(), 1) ? dt('morgen', 'tomorrow') : fmtShort(k));
+
+function trainingTodayCard() {
+  if (!state.fitness?.enabled) return '';
+  const f = fit();
+  const today = todayKey();
+  const done = workoutsIn(today, today);
+  const plans = plannedOn(today).filter((p) => !done.some((w) => w.planId === p.id));
+  const mon = thisMonday();
+  const have = activeDays(mon, addDays(mon, 6));
+  const steps = f.steps[today] || 0;
+  const burned = burnedOn(today);
+  const sub = f.live ? dt('Training läuft gerade', 'Workout in progress') : done.length ? dt('Erledigt, stark!', 'Done, nice work!') : plans.length ? dt('Laut deinem Plan', 'According to your plan') : dt('Ruhetag laut Plan', 'Rest day according to your plan');
+  return `
+  <article class="card fade-in">
+    <div class="card-head"><div><h2>${dt('Training heute', 'Training today')}</h2><div class="sub">${sub}</div></div>
+      <button class="icon-btn" data-action="dash-go" data-view="training" title="${dt('Zum Trainingsplan', 'Go to training plan')}">${icon('dumbbell')}</button></div>
+    ${f.live ? `<button class="fit-today-row live" data-action="dash-go" data-view="training">${icon('timer')}<span><b>${esc(f.live.name)}</b><small>${dt(`Läuft seit ${elapsed(f.live)}`, `Running for ${elapsed(f.live)}`)}</small></span>${icon('chevron-right')}</button>` : ''}
+    ${done.map((w) => `<div class="fit-today-row done">${icon('circle-check')}<span><b>${esc(w.name)}</b><small>${dt(`${doneSets(w)} Sätze`, `${doneSets(w)} sets`)}${durOf(w) ? ` · ${durOf(w)} min` : ''}</small></span></div>`).join('')}
+    ${f.live ? '' : plans.map((p) => `<div class="fit-today-row"><span class="fit-plan-dot" style="--c:${p.color}"></span><span><b>${esc(p.name)}</b><small>${dt(`${p.exercises.length} Übungen`, `${p.exercises.length} exercises`)}</small></span><button class="btn small primary" data-action="fit-start" data-id="${p.id}">${icon('play')}${dt('Starten', 'Start')}</button></div>`).join('')}
+    <div class="dash-mini">
+      <div class="dash-mini-row"><span>${dt('Wochenziel', 'Weekly goal')}</span><b>${dt(`${have} von ${f.weekGoal} Tagen`, `${have} of ${f.weekGoal} days`)}</b></div>
+      <div class="meter"><span data-anim="w" style="width:${Math.min(100, (have / f.weekGoal) * 100)}%"></span></div>
+      <div class="dash-mini-row"><span>${dt('Schritte', 'Steps')}${burned ? dt(` · ${fmtNum(burned)} kcal Sport`, ` · ${fmtNum(burned)} kcal exercise`) : ''}</span><b>${fmtNum(steps)} / ${fmtNum(f.stepGoal)}</b></div>
+      <div class="meter"><span data-anim="w" style="width:${Math.min(100, (steps / f.stepGoal) * 100)}%"></span></div>
+    </div>
+  </article>`;
+}
+
+function foodTodayCard() {
+  if (!state.fitness?.enabled) return '';
+  const f = fit();
+  const today = todayKey();
+  const g = needs();
+  const eaten = dayFood(today);
+  const kcal = kcalOf(eaten);
+  const goal = goalFor(today);
+  const water = f.water[today] || 0;
+  const fa = f.fasting;
+  const fastH = fa.start ? (Date.now() - Date.parse(fa.start)) / 3600000 : 0;
+  const log = f.suppLog[today] || [];
+  const over = kcal > goal;
+  return `
+  <article class="card fade-in">
+    <div class="card-head"><div><h2>${dt('Ernährung heute', 'Nutrition today')}</h2><div class="sub">${over ? dt(`${fmtNum(Math.round(kcal - goal))} kcal über dem Ziel`, `${fmtNum(Math.round(kcal - goal))} kcal over your goal`) : dt(`Noch ${fmtNum(Math.round(goal - kcal))} kcal übrig`, `${fmtNum(Math.round(goal - kcal))} kcal left`)}</div></div>
+      <button class="icon-btn" data-action="dash-food" title="${dt('Essen eintragen', 'Log food')}">${icon('plus')}</button></div>
+    <div class="dash-mini">
+      <div class="dash-mini-row"><span>${dt('Kalorien', 'Calories')}</span><b>${fmtNum(Math.round(kcal))} / ${fmtNum(goal)}</b></div>
+      <div class="meter"><span data-anim="w" style="width:${Math.min(100, (kcal / goal) * 100)}%"${kcal > goal * 1.05 ? ' data-hue="0"' : ''}></span></div>
+      <div class="dash-macros">${Object.entries(MACRO).map(([k, [name, color]]) => `<span title="${name}"><i class="macro-dot" style="--c:${color}"></i>${fmtNum(Math.round(sumOf(eaten, k)))}<small>/${fmtNum(g[k] || 0)} g</small></span>`).join('')}</div>
+      <div class="dash-mini-row"><span>${dt('Wasser', 'Water')}</span><b>${fmtNum(r1(water / 1000))} / ${fmtNum(r1(g.water / 1000))} L</b>
+        <button class="icon-btn small" data-action="fit-water" data-ml="250" title="${dt('Ein Glas (250 ml) dazu', 'Add a glass (250 ml)')}">${icon('glass-water')}</button></div>
+      <div class="meter"><span data-anim="w" style="width:${Math.min(100, (water / g.water) * 100)}%"></span></div>
+      ${fa.start ? `<div class="dash-mini-row"><span>${icon('hourglass')}${dt('Fasten läuft', 'Fasting')}</span><b>${fmtDur(fastH)} / ${fa.goal}:00 h</b></div>` : ''}
+    </div>
+    ${f.supps.length ? `<div class="fit-supps dash-supps">${f.supps.map((s) => `<button class="fit-supp ${log.includes(s.id) ? 'on' : ''}" data-action="fit-supp" data-id="${s.id}" aria-pressed="${log.includes(s.id)}">${icon(log.includes(s.id) ? 'check' : 'pill')}<span>${esc(s.name)}</span></button>`).join('')}</div>` : ''}
+  </article>`;
+}
+
+function workTodayCard() {
+  if (!state.workEnabled) return '';
+  const today = todayKey();
+  const now = Date.now();
+  const plan = [...(state.plan[today] || [])].sort((a, b) => a - b);
+  const planned = plan.length * 30;
+  const worked = workedMs(dayStart(today), dayStart(addDays(today, 1)), state.sessions, now) / 60000;
+  const running = activeSession();
+  const blocks = [];
+  for (const i of plan) { const b = blocks[blocks.length - 1]; if (b && b.to === i) b.to = i + 1; else blocks.push({ from: i, to: i + 1 }); }
+  const next = blocks.find((b) => slotStart(today, b.to) > now);
+  const sub = running ? dt(`Eingestempelt seit ${timeOf(running.start)} Uhr`, `Clocked in since ${timeOf(running.start)}`)
+    : planned ? dt(`${fmtMin(planned)} h eingeplant`, `${fmtMin(planned)} h planned`) : dt('Heute nichts eingeplant', 'Nothing planned today');
+  return `
+  <article class="card fade-in">
+    <div class="card-head"><div><h2>${dt('Arbeit heute', 'Work today')}</h2><div class="sub">${sub}</div></div>
+      <button class="icon-btn" data-action="dash-go" data-view="schedule" title="${dt('Zum Stundenplan', 'Go to schedule')}">${icon('calendar-clock')}</button></div>
+    <div class="stat-row">
+      <div class="big" style="font-size:30px">${hm(worked)}<small> h${planned ? ` / ${fmtMin(planned)}` : ''}</small></div>
+      <button class="btn small ${running ? 'danger' : 'primary'}" data-action="clock">${icon(running ? 'log-out' : 'log-in')}${running ? dt('Ausstempeln', 'Clock out') : dt('Einstempeln', 'Clock in')}</button>
+    </div>
+    ${planned ? `<div class="meter"><span data-anim="w" style="width:${Math.min(100, (worked / planned) * 100)}%"></span></div>` : ''}
+    ${next ? `<div class="sub">${slotStart(today, next.from) <= now ? dt(`Aktueller Block bis ${slotTime(next.to)} Uhr`, `Current block until ${slotTime(next.to)}`) : dt(`Nächster Block ${slotRange(next.from, next.to)} Uhr`, `Next block ${slotRange(next.from, next.to)}`)}</div>` : ''}
+  </article>`;
+}
+
+function moneyTodayCard() {
+  if (!state.finance?.enabled) return '';
+  const f = fin();
+  const head = (sub, body) => `
+  <article class="card fade-in">
+    <div class="card-head"><div><h2>${dt('Finanzen', 'Finances')}</h2><div class="sub">${sub}</div></div>
+      <button class="icon-btn" data-action="dash-go" data-view="finance" title="${dt('Zu den Finanzen', 'Go to finances')}">${icon('wallet')}</button></div>
+    ${body}
+  </article>`;
+  if (!f.tx.length && !f.subs.length) return head(dt('Noch kein Kontoauszug importiert', 'No bank statement imported yet'), `<button class="btn small" data-action="dash-go" data-view="finance" style="align-self:flex-start">${icon('upload')}${dt('Kontoauszug importieren', 'Import statement')}</button>`);
+  const ym = f.tx[0]?.date?.slice(0, 7) || todayKey().slice(0, 7);
+  const list = monthTx(ym);
+  const income = list.filter((t) => t.amount > 0 && t.cat !== 'savings').reduce((a, t) => a + t.amount, 0);
+  const spend = -list.filter((t) => t.amount < 0 && t.cat !== 'savings').reduce((a, t) => a + t.amount, 0);
+  const budget = Object.values(f.budgets).reduce((a, b) => a + (b || 0), 0);
+  const soon = f.subs.map((s) => ({ s, k: nextDue(s) })).filter((x) => x.k <= addDays(todayKey(), 7)).sort((a, b) => a.k.localeCompare(b.k)).slice(0, 3);
+  const month = new Intl.DateTimeFormat(LOCALE(), { month: 'long' }).format(parseKey(`${ym}-01`));
+  return head(dt(`${month}, laut deinem letzten Kontoauszug`, `${month}, from your latest statement`), `
+    <div class="dash-mini">
+      <div class="dash-mini-row"><span>${dt('Ausgaben', 'Spending')}</span><b>${eur(spend)}${budget ? ` / ${eur(budget)}` : ''}</b></div>
+      ${budget ? `<div class="meter"><span data-anim="w" style="width:${Math.min(100, (spend / budget) * 100)}%" data-hue="${progHue(1 - Math.min(1, spend / budget))}"></span></div>` : ''}
+      <div class="dash-mini-row"><span>${dt('Saldo', 'Balance')}</span><b class="${income - spend >= 0 ? 'good' : 'bad'}">${eur(income - spend, true)}</b></div>
+    </div>
+    ${soon.length ? `<div class="label-sm" style="margin:2px 0 0">${dt('Fällig in den nächsten 7 Tagen', 'Due in the next 7 days')}</div>
+    <div class="dash-due">${soon.map(({ s, k }) => `<div><span>${esc(s.name)}</span><small>${relDay(k)}</small><b>${eur(s.amount)}</b></div>`).join('')}</div>` : ''}`);
+}
+
 function dashAction(a, el) {
   switch (a) {
+    case 'dash-go': go(el.dataset.view); return true;
+    case 'dash-food': ui.fitDay = null; openFoodAdd(defaultMeal()); return true;
     case 'dash-edit': ui.dashEdit = true; if (ui.view !== 'today') go('today'); else render('update'); window.scrollTo?.(0, 0); return true;
     case 'dash-done': ui.dashEdit = false; render('update'); return true;
     case 'dash-reset': state.dash = { hidden: [], order: {} }; save(); render('update'); return true;

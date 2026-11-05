@@ -30,5 +30,11 @@ contextBridge.exposeInMainWorld('api', {
   relaunch: () => ipcRenderer.invoke('app:relaunch'),
   calFetch: (url) => ipcRenderer.invoke('cal:fetch', url),
   calFile: () => ipcRenderer.invoke('cal:file'),
+  googleStatus: () => ipcRenderer.invoke('google:status'),
+  googleLogin: () => ipcRenderer.invoke('google:login'),
+  googleCancel: () => ipcRenderer.invoke('google:cancel'),
+  googleLogout: (email) => ipcRenderer.invoke('google:logout', email),
+  googleApi: (email, method, path, body) => ipcRenderer.invoke('google:api', email, method, path, body),
   finFile: () => ipcRenderer.invoke('fin:file'),
+  foodSearch: (q, lang) => ipcRenderer.invoke('food:search', q, lang),
 });
