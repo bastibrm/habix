@@ -1,7 +1,7 @@
 {
   "name": "habix",
   "productName": "Habix",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Gewohnheiten, Stundenplan und Arbeitszeit für den Desktop",
   "main": "main.js",
   "private": true,
