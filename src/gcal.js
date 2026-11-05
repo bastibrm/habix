@@ -81,7 +81,12 @@ async function gLoadCalendars(acc) {
     const writable = it.accessRole === 'owner' || it.accessRole === 'writer';
     const cal = state.calendars.find((c) => c.google === it.id && c.gacc === acc);
     if (cal) Object.assign(cal, { name, writable });
-    else state.calendars.push({ id: `g${gHash(`${acc}|${it.id}`)}`, google: it.id, gacc: acc, name, color: it.backgroundColor || nextCalColor(), visible: it.selected !== false, writable, primary: !!it.primary });
+    else {
+      const id = `g${gHash(`${acc}|${it.id}`)}`;
+      state.calendars.push({ id, google: it.id, gacc: acc, name, color: it.backgroundColor || nextCalColor(), visible: it.selected !== false, writable, primary: !!it.primary });
+      // Frisch verbunden: neue Termine landen ab jetzt im Google-Hauptkalender, solange noch kein Google-Kalender gewählt ist
+      if (it.primary && writable && !gWritable(state.calLast)) state.calLast = id;
+    }
   }
   const gone = new Set(gCalsOf(acc).filter((c) => !seen.has(c.google)).map((c) => c.id));
   if (gone.size) {
