@@ -28,6 +28,13 @@ jobs:
       - name: Abhängigkeiten
         run: npm ci
 
+      # Zugangsdaten für Google Kalender (Secret GOOGLE_OAUTH_JSON); fehlt es, baut die App ohne Google-Anmeldung
+      - name: Google-Zugangsdaten
+        env:
+          GOOGLE_OAUTH_JSON: ${{ secrets.GOOGLE_OAUTH_JSON }}
+        run: |
+          if [ -n "$GOOGLE_OAUTH_JSON" ]; then printf '%s' "$GOOGLE_OAUTH_JSON" > google-oauth.json; echo "google-oauth.json angelegt"; else echo "Kein Secret GOOGLE_OAUTH_JSON, Google-Anmeldung fehlt"; fi
+
       - name: Mac-App bauen
         run: npx electron-builder --mac --publish never
         env:

@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Datenschutz – Habix</title>
+  <meta name="description" content="Datenschutzerklärung von Habix: welche Daten die App verarbeitet und wie die Google-Kalender-Anbindung funktioniert.">
+  <meta name="theme-color" content="#0b0b0e">
+  <link rel="icon" href="icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0b0e; --line: rgba(255,255,255,.075); --fg: #f1f2f5; --muted: #9ea1aa; --faint: #646771; --violet: #1e90ff;
+      --display: "Bricolage Grotesque", "Segoe UI", sans-serif; --body: "Figtree", "Segoe UI", sans-serif;
+      color-scheme: dark;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--fg); font: 400 17px/1.65 var(--body); -webkit-font-smoothing: antialiased; }
+    a { color: var(--violet); }
+    .wrap { width: min(780px, 100% - 32px); margin: 0 auto; padding: 48px 0 80px; }
+    .top { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 40px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; font: 800 20px var(--display); color: var(--fg); text-decoration: none; }
+    .brand img { width: 28px; height: 28px; border-radius: 8px; }
+    .lang a { color: var(--muted); text-decoration: none; margin-left: 14px; font-weight: 600; }
+    .lang a:hover { color: var(--fg); }
+    h1, h2 { font-family: var(--display); letter-spacing: -.03em; line-height: 1.1; }
+    h1 { font-size: clamp(34px, 6vw, 48px); margin: 0 0 8px; }
+    h2 { font-size: 24px; margin: 40px 0 10px; }
+    p, ul { margin: 0 0 14px; color: #d6d8de; }
+    ul { padding-left: 22px; }
+    li { margin-bottom: 6px; }
+    .muted { color: var(--muted); }
+    .note { border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; background: rgba(255,255,255,.03); }
+    hr { border: 0; border-top: 1px solid var(--line); margin: 64px 0; }
+    footer { color: var(--faint); font-size: 14px; border-top: 1px solid var(--line); padding-top: 24px; margin-top: 64px; }
+    footer a { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <a class="brand" href="/"><img src="icon.png" alt="">Habix</a>
+      <span class="lang"><a href="#de">Deutsch</a><a href="#en">English</a></span>
+    </div>
+
+    <section id="de" lang="de">
+      <h1>Datenschutzerklärung</h1>
+      <p class="muted">Stand: 5. November 2026</p>
+
+      <h2>Kurz gesagt</h2>
+      <p class="note">Habix ist eine Desktop-App ohne eigenen Server und ohne Konto. Alles, was du in Habix einträgst, bleibt auf deinem Rechner. Wir bekommen deine Daten nie zu sehen, auch nicht deine Google-Kalender-Daten.</p>
+
+      <h2>Verantwortlicher</h2>
+      <p>Sebastian Brümmer<br>E-Mail: <a href="mailto:mail@habix.pro">mail@habix.pro</a></p>
+
+      <h2>Daten in der App</h2>
+      <p>Gewohnheiten, Aufgaben, Termine, Notizen, Fitness- und alle anderen Einträge speichert Habix in einer Datei auf deinem Rechner (unter Windows in <code>%APPDATA%\Habix</code>) oder in einem Ordner, den du selbst auswählst, zum Beispiel in deinem OneDrive. Habix schickt diese Daten an keinen Server. Es gibt keine Werbung, keine Analyse- oder Tracking-Dienste und keine Weitergabe an Dritte.</p>
+
+      <h2>Google Kalender</h2>
+      <p>Wenn du dein Google-Konto freiwillig in den Einstellungen verbindest, meldest du dich im Browser direkt bei Google an. Habix fragt dabei diese Berechtigungen an:</p>
+      <ul>
+        <li><b>Deine E-Mail-Adresse</b> (<code>openid</code>, <code>email</code>): um das verbundene Konto in der App anzuzeigen und mehrere Konten auseinanderzuhalten.</li>
+        <li><b>Liste deiner Kalender</b> (<code>calendar.calendarlist.readonly</code>): damit du auswählen kannst, welche Kalender in Habix erscheinen.</li>
+        <li><b>Termine ansehen und bearbeiten</b> (<code>calendar.events</code>): damit Termine aus Google in Habix angezeigt werden und Termine, die du in Habix anlegst, verschiebst oder löschst, auch in Google geändert werden.</li>
+      </ul>
+      <p>So geht Habix mit diesen Daten um:</p>
+      <ul>
+        <li>Die App spricht direkt mit Google (<code>googleapis.com</code>). Es gibt keinen Server dazwischen, kein Kalender-Eintrag verlässt deinen Rechner in eine andere Richtung.</li>
+        <li>Der Zugangsschlüssel (Refresh-Token) wird verschlüsselt mit den Mitteln deines Betriebssystems auf deinem Rechner gespeichert.</li>
+        <li>Habix liest und ändert nur Termine in den Kalendern, die du ausgewählt hast, und nur dann, wenn du die App benutzt oder selbst etwas änderst.</li>
+        <li>Die Daten aus Google werden nicht verkauft, nicht für Werbung genutzt, nicht an Dritte weitergegeben und nicht zum Trainieren von KI-Modellen verwendet.</li>
+        <li>Du kannst die Verbindung jederzeit in Habix unter „Einstellungen“ trennen. Dabei widerruft Habix den Zugang bei Google und löscht ihn von deinem Rechner. Zusätzlich kannst du den Zugriff unter <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a> entfernen.</li>
+      </ul>
+      <p>Die Nutzung und Übertragung von Informationen, die Habix von Google-APIs erhält, entspricht der <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, einschließlich der Anforderungen zur eingeschränkten Nutzung (Limited Use).</p>
+
+      <h2>Weitere Verbindungen, die du selbst auslöst</h2>
+      <ul>
+        <li><b>Kalender-Abos</b> (zum Beispiel Outlook oder Apple per ICS-Link): Habix ruft die Adresse ab, die du eingetragen hast, und zeigt die Termine an. Dabei wird nur der Abruf selbst gesendet, keine Daten aus der App.</li>
+        <li><b>Lebensmittelsuche</b> im Fitness-Bereich: Dein Suchbegriff oder Barcode wird an <a href="https://world.openfoodfacts.org/privacy">Open Food Facts</a> geschickt, um Nährwerte zu finden. Sonst nichts.</li>
+      </ul>
+
+      <h2>Updates</h2>
+      <p>Um neue Versionen zu finden, fragt Habix beim Start und alle paar Stunden bei GitHub (<code>github.com</code>) nach. Dabei werden wie bei jedem Abruf einer Webseite technische Daten wie deine IP-Adresse an GitHub übertragen. Es werden keine Daten aus der App mitgeschickt. Mehr dazu in der <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement">Datenschutzerklärung von GitHub</a>.</p>
+
+      <h2>Diese Webseite</h2>
+      <p>habix.pro wird über GitHub Pages ausgeliefert, die Schriften kommen von Google Fonts. Beide Dienste erhalten beim Aufruf technisch bedingt deine IP-Adresse. Die Webseite setzt keine Cookies und nutzt keine Analyse-Werkzeuge. Sie fragt nur bei GitHub ab, welche Version gerade aktuell ist.</p>
+
+      <h2>Deine Rechte</h2>
+      <p>Da wir keine personenbezogenen Daten von dir speichern, gibt es bei uns nichts, was wir herausgeben oder löschen müssten. Deine Daten in Habix kannst du jederzeit selbst exportieren oder löschen. Bei Fragen schreib an die oben genannte E-Mail-Adresse. Du hast außerdem das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu beschweren.</p>
+    </section>
+
+    <hr>
+
+    <section id="en" lang="en">
+      <h1>Privacy Policy</h1>
+      <p class="muted">Last updated: November 5, 2026</p>
+
+      <h2>In short</h2>
+      <p class="note">Habix is a desktop app with no server of its own and no account. Everything you enter in Habix stays on your computer. We never see your data, including your Google Calendar data.</p>
+
+      <h2>Contact</h2>
+      <p>Sebastian Brümmer<br>Email: <a href="mailto:mail@habix.pro">mail@habix.pro</a></p>
+
+      <h2>Data in the app</h2>
+      <p>Habits, tasks, events, notes, fitness and all other entries are stored in a file on your computer (on Windows in <code>%APPDATA%\Habix</code>) or in a folder you choose yourself, for example in your OneDrive. Habix does not send this data to any server. There are no ads, no analytics or tracking services, and no sharing with third parties.</p>
+
+      <h2>Google Calendar</h2>
+      <p>If you choose to connect your Google account in the settings, you sign in directly with Google in your browser. Habix requests these permissions:</p>
+      <ul>
+        <li><b>Your email address</b> (<code>openid</code>, <code>email</code>): to show the connected account in the app and tell multiple accounts apart.</li>
+        <li><b>List of your calendars</b> (<code>calendar.calendarlist.readonly</code>): so you can choose which calendars appear in Habix.</li>
+        <li><b>View and edit events</b> (<code>calendar.events</code>): so events from Google show up in Habix, and events you create, move or delete in Habix are also changed in Google.</li>
+      </ul>
+      <p>How Habix handles this data:</p>
+      <ul>
+        <li>The app talks directly to Google (<code>googleapis.com</code>). There is no server in between, and no calendar data leaves your computer for anywhere else.</li>
+        <li>The access key (refresh token) is stored on your computer, encrypted with your operating system's facilities.</li>
+        <li>Habix only reads and changes events in the calendars you selected, and only while you use the app or change something yourself.</li>
+        <li>Data from Google is not sold, not used for advertising, not shared with third parties, and not used to train AI models.</li>
+        <li>You can disconnect at any time in Habix under “Settings”. Habix then revokes the access at Google and deletes it from your computer. You can also remove access at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+      </ul>
+      <p>Habix's use and transfer of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+
+      <h2>Other connections you trigger yourself</h2>
+      <ul>
+        <li><b>Calendar subscriptions</b> (for example Outlook or Apple via an ICS link): Habix fetches the address you entered and shows its events. Only the request itself is sent, no data from the app.</li>
+        <li><b>Food search</b> in the fitness section: your search term or barcode is sent to <a href="https://world.openfoodfacts.org/privacy">Open Food Facts</a> to look up nutrition values. Nothing else.</li>
+      </ul>
+
+      <h2>Updates</h2>
+      <p>To find new versions, Habix checks GitHub (<code>github.com</code>) at startup and every few hours. As with any web request, technical data such as your IP address is sent to GitHub. No data from the app is included. See <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>.</p>
+
+      <h2>This website</h2>
+      <p>habix.pro is served by GitHub Pages, and fonts come from Google Fonts. Both services technically receive your IP address when you visit. The website sets no cookies and uses no analytics. It only asks GitHub which version is current.</p>
+
+      <h2>Your rights</h2>
+      <p>Since we do not store any personal data about you, there is nothing on our side to hand over or delete. You can export or delete your data in Habix yourself at any time. For questions, write to the email address above. You also have the right to lodge a complaint with a data protection authority.</p>
+    </section>
+
+    <footer><a href="/">habix.pro</a> · <a href="https://github.com/bastibrm/habix">Quellcode auf GitHub</a></footer>
+  </div>
+</body>
+</html>
