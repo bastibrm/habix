@@ -92,7 +92,8 @@ const FX = {
   unlock(t) { [68, 72, 75, 80].forEach((n, k) => bell(t + k * 0.08, n, 0.07, -0.3 + k * 0.2, 0.9)); noiseSweep(t - 0.1, 0.6, 0.05, 1500, 6000); },
   levelup(t) { [68, 72, 75, 80, 84].forEach((n, k) => bell(t + k * 0.1, n, 0.07, -0.4 + k * 0.2, 1.0)); },
 };
-for (const e of TL.sfx) FX[e.type]?.(e.t, e);
+// Klick- und Tippgeräusche gehen unter der Musik ohnehin unter, deshalb nur noch der Song
+if (process.argv.includes('--sfx')) for (const e of TL.sfx) FX[e.type]?.(e.t, e);
 
 /* ================= Zusammenmischen ================= */
 

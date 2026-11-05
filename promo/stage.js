@@ -213,7 +213,7 @@ const ACTS = [
 ACTS.sort((x, y) => x.t - y.t);
 
 // Weiches Scrollen in der App: by Pixel zwischen t0 und t1
-const SCROLLS = [{ t0: E.amtB + 0.35, t1: E.moodClick - 0.85, by: 340 }];
+const SCROLLS = [{ t0: E.amtB + 0.4, t1: E.moodClick - 0.7, by: 340 }];
 function applyScroll(t) {
   const sc = q('#scroller');
   if (!sc) return;
@@ -341,8 +341,10 @@ wide(b(35) - 0.01, 'right', { s: 0.76 });
 wide(b(35), 'left', { cut: true });
 key(b(36), { f: ym(1), s: 1.45, ...near(1240) });
 key(b(37) - 0.01, { f: ym(6), s: 1.45, ...near(1240) });
-// Startseite anpassen: eine Karte wandert in die obere Reihe
+// Startseite anpassen: die XP-Kachel wandert in der oberen Reihe nach vorn
 key(b(37), { f: C, s: 0.8, sy: 520, rx: 6, ry: -6, cut: true });
+key(E.dashDragStart - 1.3, { f: dashItem('perfect'), s: 1.25, sx: 754, sy: 470, rx: 4, ry: -4 });
+key(E.dashDragEnd + 1.2, { f: dashItem('perfect'), s: 1.27, sx: 754, sy: 470, rx: 3, ry: -3 });
 key(b(40) - 0.01, { f: C, s: 0.84, sy: 520, rx: 3, ry: -3 });
 // Hell und dunkel
 key(b(40), { f: C, s: 0.8, sy: 520, rx: 6, ry: 7, cut: true });
@@ -359,7 +361,7 @@ const CUTS = K.filter((k) => k.cut && k.t > b(3) + 0.5).map((k) => k.t);
 
 /* Mauszeiger. to: Ziel, from: Startversatz zum Ziel (ohne: vom letzten Punkt aus), click: echter Klick (delay: etwas später),
    drag: Verschieben um [dx, dy] (dragEl: was angefasst wird), hold: wie lange der Zeiger danach bleibt, xp: schwebende XP */
-const dashFrom = () => { const el = dashItem('month')(); const r = el.getBoundingClientRect(); return { x: r.left + 60, y: r.top + 34 }; };
+const dashFrom = () => { const el = dashItem('xp')(); const r = el.getBoundingClientRect(); return { x: r.left + 60, y: r.top + 34 }; };
 const go = (t1, to, o = {}) => ({ t0: t1 - (o.lead ?? 0.55), t1, to, click: true, hold: 0.25, ...o });
 const CURSOR = [
   // Heute
@@ -403,8 +405,12 @@ const CURSOR = [
   { t0: E.pauseStart - 0.8, t1: E.pauseStart, to: '.modal [data-action="pause-start"]', click: true, burst: true, hold: 0.6 },
   // Startseite anpassen
   { t0: E.dashDragStart - 1.1, t1: E.dashDragStart, to: dashFrom, from: [180, 160], hold: 0 },
-  { t0: E.dashDragStart, t1: E.dashDragEnd, drag: () => { const a = dashFrom(), c = centerOf(dashItem('week')()); return [c.x - 40 - a.x, c.y - 30 - a.y]; }, dragEl: (x, y) => appDoc.elementFromPoint(x, y)?.closest('.dash-item') || dashItem('month')(), dash: true, hold: 0.9 },
+  { t0: E.dashDragStart, t1: E.dashDragEnd, drag: () => { const a = dashFrom(), r = dashItem('done')().getBoundingClientRect(); return [r.left + 50 - a.x, r.top + 40 - a.y]; }, dragEl: (x, y) => appDoc.elementFromPoint(x, y)?.closest('.dash-item') || dashItem('xp')(), dash: true, hold: 0.9 },
 ];
+// Der Zeiger bleibt nach einem Klick stehen und verschwindet erst kurz vor dem nächsten Schnitt.
+// Kommt in derselben Szene noch ein Klick, fährt er von dort aus weiter statt neu einzublenden.
+const nextCut = (t) => CUTS.find((c) => c > t) ?? TL.duration;
+const STAY = CURSOR.map((seg, i) => ({ until: nextCut(seg.t1) - 0.15, join: !!CURSOR[i + 1] && CURSOR[i + 1].t0 < nextCut(seg.t1) }));
 
 /* ================= Kamera ================= */
 
@@ -464,11 +470,11 @@ function updateCursor(t) {
         const p = el ? (el.x !== undefined ? el : centerOf(el)) : { x: cur.x, y: cur.y };
         st.el = el && el.x === undefined ? el : null;
         st.to = { x: p.x, y: p.y };
-        st.from = seg.from ? { x: p.x + seg.from[0], y: p.y + seg.from[1] } : { x: cur.x, y: cur.y };
+        st.from = seg.from && !STAY[i - 1]?.join ? { x: p.x + seg.from[0], y: p.y + seg.from[1] } : { x: cur.x, y: cur.y };
       }
     }
-    const hold = seg.hold ?? 0.45;
-    if (t >= seg.t0 - 0.12 && t <= seg.t1 + hold + 0.12) vis = Math.max(vis, Math.min(prog(t, seg.t0 - 0.12, seg.t0), 1 - prog(t, seg.t1 + hold, seg.t1 + hold + 0.12)));
+    const end = STAY[i].until;
+    if (t >= seg.t0 - 0.12 && t <= end + 0.12) vis = Math.max(vis, Math.min(STAY[i - 1]?.join ? 1 : prog(t, seg.t0 - 0.12, seg.t0), 1 - prog(t, end, end + 0.12)));
     if (st.started && t < seg.t1) {
       const k = easeInOut(prog(t, seg.t0, seg.t1));
       const arc = seg.drag ? 0 : Math.sin(k * Math.PI) * Math.min(60, Math.hypot(st.to.x - st.from.x, st.to.y - st.from.y) * 0.15);
@@ -593,7 +599,9 @@ function renderIntroFx(t) {
   c.clearRect(0, 0, W, H);
   const [, t1] = TL.T.logo;
   if (t > t1) return;
-  const cx = W / 2, cy = H / 2 - 92, R = 61;
+  // Mitte des echten Logos, damit die Lichtpunkte genau darauf landen
+  const lr = document.querySelector('.intro-logo').getBoundingClientRect();
+  const cx = lr.left + lr.width / 2, cy = lr.top + lr.height / 2, R = 61;
   c.globalCompositeOperation = 'lighter';
   for (const m of motes) {
     const k = easeInOut(prog(t, 0.2 + m.d, 1.7 + m.d));
@@ -621,6 +629,8 @@ function renderIntro(t) {
   $('logo-dot').setAttribute('r', Math.max(0, 5 * easeOutBack(prog(t, t0 + 2.0, t0 + 2.6))));
   document.querySelector('.intro-logo').style.transform = `rotate(${(1 - k) * -120}deg) scale(${0.7 + 0.3 * easeOut(prog(t, t0 + 1.0, t0 + 2.4))})`;
   // Lichtstrahlen hinter dem Logo
+  const lg = document.querySelector('.intro-logo');
+  $('rays').style.top = `${lg.offsetTop + lg.offsetHeight / 2}px`;
   $('rays').style.opacity = 0.55 * easeOut(prog(t, t0 + 1.8, t0 + 3.0));
   $('rays').style.transform = `translate(-50%, -50%) rotate(${t * 12}deg) scale(${0.8 + 0.2 * easeOut(prog(t, t0 + 1.8, t0 + 3.4))})`;
   document.querySelectorAll('#intro-title span').forEach((s, n) => {

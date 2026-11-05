@@ -23,7 +23,7 @@
     // Heute: drei Gewohnheiten im Takt, Menge hochzählen, Stimmung
     checkA: b(5), checkB: b(5, 2), checkC: b(6),
     amtA: b(6, 2.5), amtB: b(6, 3.25),
-    moodClick: b(7, 1),
+    moodClick: b(7, 2),
     // Aufgaben: neue Aufgabe eintippen, anlegen, eine andere abhaken
     taskFocus: b(8, 2), typeTask0: b(8, 2.6), typeTask1: b(9, 3), taskEnter: b(10),
     taskClick: b(10, 2.5),
@@ -42,7 +42,7 @@
     pauseOpen: b(29, 3), pauseKind: b(30, 2), pauseStart: b(31), pauseClose: b(31, 3),
     // Bereiche, Startseite, Hell
     finCut: b(33, 2),
-    dashDragStart: b(38), dashDragEnd: b(39, -1),
+    dashDragStart: b(38), dashDragEnd: b(39, -1.5),
     themeWipe: b(40, 2),
   };
 
