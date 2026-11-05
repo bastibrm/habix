@@ -6,4 +6,4 @@ promo/out/
 promo/song.mp3
 
 # Google-Zugangsdaten der App, kommen nur in die fertigen Builds
-google-oauth.json
+google-oauth*.json

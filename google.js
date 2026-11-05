@@ -129,8 +129,9 @@ async function accessToken(email, force = false) {
     storeAccounts();
     return t.access;
   } catch (e) {
-    // Zugang wurde bei Google widerrufen oder ist abgelaufen: dieses Konto abmelden, die Oberfläche bietet neu anmelden an
-    if (e.code === 'invalid_grant') { logout(email, false); throw Object.assign(new Error('signed-out'), { code: 'signed-out' }); }
+    // Zugang wurde bei Google widerrufen, ist abgelaufen oder gehört zu einem früheren Client der App:
+    // dieses Konto abmelden, die Oberfläche bietet neu anmelden an
+    if (e.code === 'invalid_grant' || e.code === 'unauthorized_client') { logout(email, false); throw Object.assign(new Error('signed-out'), { code: 'signed-out' }); }
     throw e;
   }
 }
