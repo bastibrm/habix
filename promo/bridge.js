@@ -8,6 +8,13 @@ window.__promo = {
     // Arbeit und Finanzen starten gesperrt, das Video schaltet sie frei
     state.workEnabled = false;
     state.finance.enabled = false;
+    // Fitness ebenfalls gesperrt (die Beispieldaten sind schon geladen), keine Pausen, Joker oder gewählten Titel
+    state.fitness.enabled = false;
+    state.fitness.live = null;
+    state.fitness.lvSeen = 999; state.fitness.rankSeen = 99;
+    state.pauses = []; state.jokers = {};
+    state.cosmetic = { title: null, color: null };
+    state.chSwaps = {};
     state.levelSeen = computeXp().level;
 
     // Finanzen: Vormonat mit vollen Beispieldaten zeigen, erkannte Abos übernehmen
@@ -89,6 +96,17 @@ window.__promo = {
     ui.view = 'x';
     go('schedule');
   },
+  // Wie „Bereich aktivieren“ bei Fitness, ohne Zeitverzögerung, direkt in den Trainingsplan
+  enableFitness() {
+    state.fitness.enabled = true;
+    save();
+    closeModal();
+    renderSidebar();
+    ui.view = 'x';
+    go('training');
+  },
+  // Ansicht wechseln und nach oben scrollen
+  goTop(view) { this.go(view); const s = document.getElementById('scroller'); if (s) s.scrollTop = 0; },
   // Wie ein Kontoauszug-Import nach dem Freischalten; die Beispielbuchungen sind schon geladen
   enableFinance() {
     state.finance.enabled = true;

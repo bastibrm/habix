@@ -78,6 +78,15 @@ const FX = {
       put(sfx, i0 + j, Math.sin(TAU * ph) * Math.exp(-tt * 30) * 0.2);
     }
   },
+  // Weicher Tastenanschlag beim Tippen, leicht unterschiedlich je Taste
+  key(t, e) {
+    const i0 = Math.floor(t * SR);
+    const f = 2400 + ((e.v * 397) % 900);
+    for (let j = 0; j < SR * 0.025; j++) {
+      const tt = j / SR;
+      put(sfx, i0 + j, (Math.sin(TAU * f * tt) * 0.5 + noise() * 0.5) * Math.exp(-tt * 380) * 0.09, ((e.v % 5) - 2) * 0.08);
+    }
+  },
   sparkle(t) { [84, 87, 91, 94].forEach((n, k) => bell(t + k * 0.06, n, 0.03, -0.5 + k * 0.3, 0.4)); },
   lock(t) { [[0, 62], [0.13, 58]].forEach(([d, n]) => bell(t + d, n, 0.07, 0, 0.12)); },
   unlock(t) { [68, 72, 75, 80].forEach((n, k) => bell(t + k * 0.08, n, 0.07, -0.3 + k * 0.2, 0.9)); noiseSweep(t - 0.1, 0.6, 0.05, 1500, 6000); },

@@ -1,9 +1,8 @@
 'use strict';
 
-/* Bühne (Version 4, Habix): ruhiger Produktfilm auf den Takten von „Long Road“. Zu jeder Zeit t berechnet renderAt(t) das komplette Bild.
-   Die Kamera richtet sich auf Elemente der echten App aus, Aktionen und Klicks laufen in der App selbst.
-   Neu: Lichtstreifen bei Schnitten, Logo-Intro mit Lichtpartikeln,
-   Kreis-Überblendung beim Wechsel auf Hell, Unterstreichung der Überschriften. */
+/* Bühne (Version 5, Habix 1.2): Produktfilm auf den Takten von „Long Road“. Zu jeder Zeit t berechnet renderAt(t) das komplette Bild.
+   Die Kamera richtet sich auf Elemente der echten App aus, Aktionen, Klicks und Eingaben laufen in der App selbst.
+   Version 5: mehrere Handgriffe pro Szene, Text wird eingetippt, neue Szenen für Fitness, Challenges, Vitrine und Pause. */
 
 const TL = window.TIMELINE;
 const { E } = TL;
@@ -79,7 +78,7 @@ function buildCaptions() {
 }
 
 function buildOutro() {
-  const f = ['Gewohnheiten', 'Aufgaben', 'Kalender', 'Level', 'Arbeitszeit', 'Finanzen'];
+  const f = ['Gewohnheiten', 'Aufgaben', 'Kalender', 'Fitness', 'Challenges', 'Arbeitszeit', 'Finanzen'];
   $('outro-features').innerHTML = f.map((x, i) => `<span>${x}</span>${i < f.length - 1 ? '<i>·</i>' : ''}`).join('');
 }
 
@@ -129,6 +128,7 @@ function resolve(f, doBring) {
   const el = typeof f === 'function' ? f() : q(f);
   if (!el) return null;
   if (el.x !== undefined) return el;
+  if (!el.isConnected || !el.getBoundingClientRect().width) return null;
   if (doBring) bring(el);
   return centerOf(el);
 }
@@ -184,25 +184,64 @@ function pointer(type, target, x, y) {
 /* ================= Drehbuch: Aktionen, Kamera, Mauszeiger ================= */
 
 const C = { x: FW / 2, y: FH / 2 };
+const b = TL.b;
 
 // Aktionen in der App, jeweils einmal zur Zeit t
 const ACTS = [
-  { t: bar(9), fn: (t) => { P().go('tasks'); startBuild(t, 1.4); } },
-  { t: bar(13), fn: (t) => { P().go('stats'); startBuild(t, 2.2); } },
-  { t: bar(16), fn: (t) => { P().habitsPrevMonth(); pickMatrixRow(); startBuild(t, 2.2); } },
-  { t: bar(19), fn: () => { P().calMode('week'); const s = q('#wk-scroll'); if (s) s.scrollTop = 8 * 48 - 10; } },
-  { t: bar(22), fn: (t) => { P().calMode('year'); startBuild(t, 1.8); } },
-  { t: bar(25), fn: () => P().go('today') },
-  { t: E.workCut, fn: (t) => { P().enableWork(); startBuild(t, 1.8); } },
-  { t: bar(29), fn: () => P().go('today') },
-  { t: bar(32), fn: () => { appWin.closeModal(); P().go('today'); } },
-  { t: E.finCut, fn: (t) => { P().enableFinance(); startBuild(t, 2.2); } },
-  { t: bar(37), fn: () => { P().dashEdit(true); const s = q('#scroller'); if (s) s.scrollTop = 0; } },
-  { t: bar(40), fn: () => { P().dashEdit(false); const s = q('#scroller'); if (s) s.scrollTop = 0; } },
+  { t: b(3), fn: () => { const sc = q('#scroller'), h = q('.habit-row'); if (sc && h) sc.scrollTop += h.getBoundingClientRect().top - 330; } },
+  { t: E.fitStart + 0.15, fn: () => appWin.closeModal() },
+  { t: b(8), fn: (t) => { P().goTop('tasks'); startBuild(t, 1.2); } },
+  { t: E.taskEnter, fn: (t) => { const i = q('.task-input'); if (i) { const r = i.getBoundingClientRect(); fxEvents.push({ kind: 'enter', t, x: r.right - 70, y: r.top + r.height / 2 }); } q('form.task-add')?.requestSubmit(); } },
+  { t: b(11), fn: () => { P().calMode('week'); const s = q('#wk-scroll'); if (s) s.scrollTop = 8 * 48 - 10; } },
+  { t: b(15), fn: (t) => { appWin.closeModal(); P().goTop('stats'); startBuild(t, 1.8); } },
+  { t: b(17), fn: () => P().goTop('today') },
+  { t: E.fitCut, fn: (t) => { P().enableFitness(); const s = q('#scroller'); if (s) s.scrollTop = 0; startBuild(t, 1.4); } },
+  { t: E.nutCut, fn: (t) => { appWin.closeModal(); P().goTop('nutrition'); startBuild(t, 1.4); } },
+  { t: b(24), fn: () => { appWin.closeModal(); P().goTop('today'); } },
+  { t: b(29), fn: () => { appWin.closeModal(); P().goTop('today'); } },
+  { t: E.pauseClose, fn: () => appWin.closeModal() },
+  { t: b(32), fn: (t) => { P().enableWork(); startBuild(t, 1.6); } },
+  { t: E.finCut, fn: (t) => { P().enableFinance(); startBuild(t, 1.8); } },
+  { t: b(35), fn: (t) => { P().calMode('year'); startBuild(t, 1.8); } },
+  { t: b(37), fn: () => { P().dashEdit(true); const s = q('#scroller'); if (s) s.scrollTop = 0; } },
+  { t: b(40), fn: () => { P().dashEdit(false); const s = q('#scroller'); if (s) s.scrollTop = 0; } },
   { t: E.themeWipe + 0.22, fn: () => P().theme('light') },
-  { t: bar(42), fn: () => { P().go('settings'); } },
-  { t: bar(43), fn: () => { P().theme('dark'); P().go('today'); } },
+  { t: b(42), fn: () => { P().go('settings'); } },
+  { t: b(43), fn: () => { P().theme('dark'); P().go('today'); } },
 ];
+
+ACTS.sort((x, y) => x.t - y.t);
+
+// Weiches Scrollen in der App: by Pixel zwischen t0 und t1
+const SCROLLS = [{ t0: E.amtB + 0.35, t1: E.moodClick - 0.85, by: 340 }];
+function applyScroll(t) {
+  const sc = q('#scroller');
+  if (!sc) return;
+  for (const r of SCROLLS) {
+    if (t < r.t0 || r.done) continue;
+    if (r.base === undefined) r.base = sc.scrollTop;
+    sc.scrollTop = r.base + r.by * easeInOut(prog(t, r.t0, r.t1));
+    if (t >= r.t1) r.done = true;
+  }
+}
+
+// Eintippen: Buchstabe für Buchstabe in ein Feld der App, mit echtem input-Ereignis
+const TYPES = [
+  { t0: E.typeTask0, t1: E.typeTask1, el: () => q('.task-input'), text: TL.TYPED.task },
+  { t0: E.typeCal0, t1: E.typeCal1, el: () => q('#ce-title'), text: TL.TYPED.cal },
+];
+function applyTyping(t) {
+  for (const ty of TYPES) {
+    if (t < ty.t0 || ty.done) continue;
+    const el = ty.el();
+    if (!el) continue;
+    if (!ty.started) { ty.started = true; el.focus(); }
+    const n = Math.round(ty.text.length * prog(t, ty.t0, ty.t1));
+    const v = ty.text.slice(0, n);
+    if (el.value !== v) { el.value = v; el.dispatchEvent(new appWin.Event('input', { bubbles: true })); }
+    if (t >= ty.t1) ty.done = true;
+  }
+}
 
 /* Kamera-Punkte. f: worauf gezielt wird (Selektor, Funktion, 'cursor' oder Punkt), s: Zoom,
    sx/sy: wo dieser Punkt auf dem Bild landet, rx/ry/rz: Neigung, cut: Schnitt statt Fahrt,
@@ -214,123 +253,168 @@ const WIDE = { left: { f: C, s: 0.72, sx: 1290, sy: 560, ry: -9, rx: 3 }, right:
 const wide = (t, side, o = {}) => key(t, { ...WIDE[side], ...o });
 const near = (sx) => ({ sx, sy: 560, ry: 0, rx: 0 });
 const CHECK = '.habit-row:not(.is-done):not(.is-amount) .check';
+const AMT = '.habit-row.is-amount .amt-btn.plus';
+const openSet = () => q('.fit-check:not(.on)');
+const glass = () => q('.fit-glass:not(.on)');
+const title = (i) => () => qa('.modal [data-action="cos-title"]:not(.on)')[i];
+const swatch = (i) => () => qa('.modal [data-action="cos-color"]:not(.on)').filter((x) => x.dataset.id)[i];
+const chCard = () => q('.dash-item[data-card="challenges"]') || q('.ch-swap')?.closest('.card');
 
 key(0, { f: C, s: 0.6, o: 0 });
-// Heute: Fenster gleitet herein, Abhaken auf dem Einsatz des Schlagzeugs
-key(bar(3), { f: C, s: 0.55, sx: 1290, sy: 620, rx: 18, ry: -24, o: 0, cut: true });
-wide(bar(3) + 1.4, 'left', { ease: 'soft' });
-wide(bar(4) + 0.4, 'left', { s: 0.74 });
-key(E.checkClick - 0.9, { f: CHECK, s: 1.7, ...near(1240) });
-key(E.checkClick + 1.3, { f: CHECK, s: 1.75, ...near(1240) });
-wide(bar(6) + 0.6, 'left');
-wide(bar(8) + 0.8, 'left');
-wide(bar(9) - 0.01, 'left', { s: 0.74 });
-// Aufgaben: Teilschritte zeigen, eine wiederkehrende Aufgabe abhaken
-wide(bar(9), 'right', { cut: true });
-wide(bar(10) - 0.6, 'right', { s: 0.74 });
-key(bar(10) + 0.3, { f: taskRow('Umzugskartons'), s: 1.45, ...near(660) });
-key(E.taskClick - 0.8, { f: taskCheck('Pflanzen gießen'), s: 1.5, ...near(660) });
-key(E.taskClick + 1.2, { f: taskCheck('Pflanzen gießen'), s: 1.55, ...near(660) });
-wide(bar(12) + 0.8, 'right');
-wide(bar(13) - 0.01, 'right', { s: 0.74 });
+// Heute: drei Gewohnheiten im Takt, Menge zählen, Stimmung
+key(b(3), { f: C, s: 0.55, sx: 1290, sy: 620, rx: 18, ry: -24, o: 0, cut: true });
+wide(b(3) + 1.4, 'left', { ease: 'soft' });
+wide(b(4) + 0.4, 'left', { s: 0.74 });
+key(E.checkA - 0.9, { f: CHECK, s: 1.45, ...near(1240) });
+key(E.checkC + 0.3, { f: CHECK, s: 1.45, ...near(1240) });
+key(E.amtA - 0.5, { f: AMT, s: 1.6, ...near(1240) });
+key(E.amtB + 0.5, { f: AMT, s: 1.6, ...near(1240) });
+key(E.moodClick - 0.5, { f: '[data-action="mood"][data-mood="5"]', s: 1.5, ...near(1240), live: true });
+key(E.moodClick + 0.9, { f: '[data-action="mood"][data-mood="5"]', s: 1.52, ...near(1240), live: true });
+wide(b(8) - 0.01, 'left', { s: 0.74 });
+// Aufgaben: eintippen, anlegen, abhaken
+wide(b(8), 'right', { cut: true });
+key(E.taskFocus - 0.5, { f: '.task-input', s: 1.55, ...near(660) });
+key(E.taskEnter + 0.4, { f: '.task-input', s: 1.5, ...near(660) });
+key(E.taskClick - 0.6, { f: taskCheck('Pflanzen gießen'), s: 1.45, ...near(660) });
+key(E.taskClick + 0.6, { f: taskCheck('Pflanzen gießen'), s: 1.48, ...near(660) });
+wide(b(11) - 0.01, 'right', { s: 0.74 });
+// Kalender: verschieben, neuen Termin anlegen
+wide(b(11), 'left', { cut: true });
+wide(b(12) - 0.6, 'left', { s: 0.74 });
+key(E.dragStart - 0.4, { f: meeting, s: 1.4, ...near(1240) });
+key(E.dragStart, { f: 'cursor', s: 1.4, ...near(1240) });
+key(E.dragEnd + 0.2, { f: 'cursor', s: 1.4, ...near(1240) });
+key(E.calNew - 0.3, { f: C, s: 0.9, ...near(1260) });
+key(E.typeCal0 - 0.1, { f: '#ce-title', s: 1.45, ...near(1240) });
+key(E.typeCal1 + 0.2, { f: '#ce-title', s: 1.45, ...near(1240) });
+key(E.calSave - 0.4, { f: '[data-action="cal-save"]', s: 1.3, ...near(1240) });
+key(E.calSave + 0.2, { f: '[data-action="cal-save"]', s: 1.3, ...near(1240) });
+wide(b(15) - 0.01, 'left', { s: 0.74 });
 // Statistiken
-wide(bar(13), 'left', { cut: true });
-wide(bar(14) - 0.4, 'left', { s: 0.74 });
-key(bar(14) + 0.6, { f: card('Verlauf'), s: 1.2, ...near(1260) });
-key(bar(15) + 0.9, { f: card('Verlauf'), s: 1.24, ...near(1260) });
-wide(bar(16) - 0.01, 'left', { s: 0.76 });
-// Übersicht: Monat zeigen, zum offenen Tag, nachtragen
-wide(bar(16), 'right', { cut: true });
-wide(bar(17) - 0.4, 'right', { s: 0.74 });
-key(E.matrixClick - 1.1, { f: () => ovCell, s: 1.7, ...near(660) });
-key(E.matrixClick + 0.9, { f: () => ovCell, s: 1.75, ...near(660) });
-wide(bar(19) - 0.01, 'right', { s: 0.74 });
-// Wochenkalender: Termin anfassen und verschieben, Kamera folgt dem Zeiger
-wide(bar(19), 'left', { cut: true });
-wide(bar(20) - 0.6, 'left', { s: 0.74 });
-key(E.dragStart - 0.6, { f: meeting, s: 1.45, ...near(1240) });
-key(E.dragStart, { f: 'cursor', s: 1.45, ...near(1240) });
-key(E.dragEnd, { f: 'cursor', s: 1.45, ...near(1240) });
-key(E.dragEnd + 0.9, { f: 'cursor', s: 1.45, ...near(1240) });
-wide(bar(22) - 0.01, 'left', { s: 0.74 });
-// Jahresansicht: Monate erscheinen nacheinander, dann gleitet die Kamera über das Jahr
-wide(bar(22), 'right', { cut: true });
-wide(bar(23) - 0.3, 'right', { s: 0.74 });
-key(bar(23) + 0.4, { f: ym(1), s: 1.55, ...near(660) });
-key(bar(24) + 1.4, { f: ym(10), s: 1.55, ...near(660) });
-wide(bar(25) - 0.01, 'right', { s: 0.74 });
-// Arbeit freischalten
-wide(bar(25), 'left', { cut: true });
-key(E.lockClick - 0.7, { f: '#nav-schedule', s: 1.8, ...near(1200) });
-key(E.lockClick + 0.35, { f: '#nav-schedule', s: 1.85, ...near(1200) });
-key(E.lockClick + 1.1, { f: '.modal', s: 1.15, ...near(1260) });
-key(E.activateClick - 0.5, { f: '[data-action="work-enable"]', s: 1.4, ...near(1260) });
-key(E.workCut - 0.01, { f: '[data-action="work-enable"]', s: 1.42, ...near(1260) });
-wide(E.workCut, 'left', { cut: true });
-key(E.clockClick - 0.9, { f: '#clock-pill', s: 1.6, ...near(1200), sy: 520 });
-key(E.clockClick + 1.0, { f: '#clock-pill', s: 1.65, ...near(1200), sy: 520 });
-wide(bar(29) - 0.01, 'left', { s: 0.74 });
-// Level (ruhige Stelle im Song): Rangliste langsam durchgehen
-key(bar(29), { f: C, s: 0.8, sx: 960, sy: 560, rx: 6, cut: true });
-key(E.levelClick - 0.3, { f: '#level-card', s: 2.0, sx: 960, sy: 560 });
-key(E.levelPanel - 0.01, { f: '#level-card', s: 2.05, sx: 960, sy: 560 });
-key(E.levelPanel, { f: '.modal', s: 1.12, sx: 960, sy: 660, rx: 4, cut: true });
-key(bar(32) - 0.01, { f: '.modal', s: 1.18, sx: 960, sy: 660, rx: 1 });
-// Finanzen freischalten, Datei landet auf dem Takt
-wide(bar(32), 'left', { cut: true });
-key(E.finLockClick - 0.7, { f: '#nav-finance', s: 1.8, ...near(1200) });
-key(E.finLockClick + 0.35, { f: '#nav-finance', s: 1.85, ...near(1200) });
-key(E.finLockClick + 1.1, { f: '.modal', s: 1.15, ...near(1260) });
-key(E.fileDrop - 0.6, { f: '[data-action="fin-unlock-import"]', s: 1.4, ...near(1260) });
-key(E.finCut - 0.01, { f: '[data-action="fin-unlock-import"]', s: 1.42, ...near(1260) });
+wide(b(15), 'right', { cut: true });
+wide(b(17) - 0.01, 'right', { s: 0.78 });
+// Fitness freischalten
+wide(b(17), 'left', { cut: true });
+key(E.fitLock - 0.7, { f: '#nav-training', s: 1.8, ...near(1200) });
+key(E.fitLock + 0.35, { f: '#nav-training', s: 1.85, ...near(1200) });
+key(E.fitLock + 1.1, { f: '.modal', s: 1.1, ...near(1260) });
+key(E.fitActivate - 0.5, { f: '[data-action="fit-enable"]', s: 1.4, ...near(1260) });
+key(E.fitCut - 0.01, { f: '[data-action="fit-enable"]', s: 1.42, ...near(1260) });
+// Trainingsplan: Tag anklicken, Trainingstag dazu, starten, Sätze abhaken
+wide(E.fitCut, 'right', { cut: true });
+key(E.dayClick - 0.6, { f: () => q('.fit-pw-day.today'), s: 1.35, ...near(660) });
+key(E.dayClick + 0.25, { f: () => q('.fit-pw-day.today'), s: 1.38, ...near(660) });
+key(E.dayClick + 0.6, { f: '.modal', s: 1.5, ...near(660) });
+key(E.fitStart + 0.2, { f: '.modal', s: 1.55, ...near(660) });
+key(E.fitStart + 0.5, { f: () => q('.fit-live') || C, s: 1.0, ...near(660), cut: true });
+key(E.set1 - 0.5, { f: openSet, s: 1.45, ...near(660) });
+key(E.set4 + 0.4, { f: () => qa('.fit-check.on').pop() || C, s: 1.4, ...near(660) });
+// Ernährung: Wasser
+wide(E.nutCut, 'right', { cut: true, s: 0.74 });
+key(E.water1 - 0.5, { f: glass, s: 1.5, ...near(660), bring: true });
+key(b(24) - 0.01, { f: glass, s: 1.5, ...near(660) });
+// Challenges und Vitrine (ruhige Stelle)
+wide(b(24), 'left', { cut: true });
+key(E.swapClick - 0.6, { f: chCard, s: 1.35, ...near(1240), bring: true });
+key(E.swapClick + 1.0, { f: chCard, s: 1.38, ...near(1240) });
+key(E.levelClick - 0.4, { f: '#level-card', s: 1.9, sx: 1240, sy: 560 });
+key(E.levelClick + 0.3, { f: '#level-card', s: 1.95, sx: 1240, sy: 560 });
+key(E.levelClick + 0.6, { f: '.modal', s: 1.0, sx: 960, sy: 640, rx: 3, cut: true });
+key(E.vitrineClick + 0.3, { f: '.modal', s: 1.0, sx: 960, sy: 640, rx: 3 });
+key(E.vitrineClick + 0.6, { f: '.modal', s: 1.08, sx: 960, sy: 640, rx: 2, cut: true });
+key(b(29) - 0.01, { f: '.modal', s: 1.12, sx: 960, sy: 640, rx: 1 });
+// Pause: Urlaubsmodus
+wide(b(29), 'left', { cut: true });
+key(E.pauseOpen - 0.6, { f: '[data-action="pause-open"]', s: 1.7, ...near(1200) });
+key(E.pauseOpen + 0.3, { f: '[data-action="pause-open"]', s: 1.75, ...near(1200) });
+key(E.pauseOpen + 0.6, { f: '.modal', s: 0.95, ...near(1240), cut: true });
+key(E.pauseStart + 0.5, { f: '.modal', s: 0.98, ...near(1240) });
+wide(E.pauseClose, 'left', { cut: true, s: 0.78 });
+key(b(32) - 0.01, { f: () => q('.shield-pill') || C, s: 1.5, ...near(1240) });
+// Arbeit und Finanzen
+wide(b(32), 'right', { cut: true });
+wide(E.finCut - 0.01, 'right', { s: 0.76 });
 wide(E.finCut, 'right', { cut: true });
-wide(bar(36) - 0.8, 'right', { s: 0.74 });
-key(bar(36), { f: card('Ausgaben nach Kategorie'), s: 1.1, ...near(660) });
-key(bar(37) - 0.01, { f: card('Ausgaben nach Kategorie'), s: 1.13, ...near(660) });
+wide(b(35) - 0.01, 'right', { s: 0.76 });
+// Jahresansicht
+wide(b(35), 'left', { cut: true });
+key(b(36), { f: ym(1), s: 1.45, ...near(1240) });
+key(b(37) - 0.01, { f: ym(6), s: 1.45, ...near(1240) });
 // Startseite anpassen: eine Karte wandert in die obere Reihe
-key(bar(37), { f: C, s: 0.8, sy: 520, rx: 6, ry: -6, cut: true });
-key(bar(40) - 0.01, { f: C, s: 0.84, sy: 520, rx: 3, ry: -3 });
+key(b(37), { f: C, s: 0.8, sy: 520, rx: 6, ry: -6, cut: true });
+key(b(40) - 0.01, { f: C, s: 0.84, sy: 520, rx: 3, ry: -3 });
 // Hell und dunkel
-key(bar(40), { f: C, s: 0.8, sy: 520, rx: 6, ry: 7, cut: true });
-key(bar(42) - 0.01, { f: C, s: 0.84, sy: 520, rx: 3, ry: 3 });
+key(b(40), { f: C, s: 0.8, sy: 520, rx: 6, ry: 7, cut: true });
+key(b(42) - 0.01, { f: C, s: 0.84, sy: 520, rx: 3, ry: 3 });
 // Zwei PCs: Speicherort in den Einstellungen
-key(bar(42), { f: () => q('.storage'), s: 1.25, sy: 520, rx: 4, ry: -4, cut: true, bring: true });
-key(bar(43) - 0.01, { f: () => q('.storage'), s: 1.3, sy: 520, rx: 2, ry: -2 });
+key(b(42), { f: () => q('.storage'), s: 1.25, sy: 520, rx: 4, ry: -4, cut: true, bring: true });
+key(b(43) - 0.01, { f: () => q('.storage'), s: 1.3, sy: 520, rx: 2, ry: -2 });
 // Outro: Fenster kippt nach hinten weg
-key(bar(43), { f: C, s: 0.84, sy: 500, rx: 3, cut: true });
-key(bar(43) + 2.0, { f: C, s: 0.75, sy: 860, rx: 56, o: 0.15, blur: 8 });
+key(b(43), { f: C, s: 0.84, sy: 500, rx: 3, cut: true });
+key(b(43) + 2.0, { f: C, s: 0.75, sy: 860, rx: 56, o: 0.15, blur: 8 });
 key(TL.duration, { f: C, s: 0.72, sy: 880, rx: 58, o: 0.12, blur: 8 });
 K.sort((a, b) => a.t - b.t);
-const CUTS = K.filter((k) => k.cut && k.t > bar(3) + 0.5).map((k) => k.t);
+const CUTS = K.filter((k) => k.cut && k.t > b(3) + 0.5).map((k) => k.t);
 
-/* Mauszeiger. to: Ziel, from: Startversatz zum Ziel, click: echter Klick (delay: etwas später),
-   drag: Verschieben um [dx, dy] (dragEl: was angefasst wird), carry: trägt die Datei, hold: wie lange der Zeiger danach bleibt */
+/* Mauszeiger. to: Ziel, from: Startversatz zum Ziel (ohne: vom letzten Punkt aus), click: echter Klick (delay: etwas später),
+   drag: Verschieben um [dx, dy] (dragEl: was angefasst wird), hold: wie lange der Zeiger danach bleibt, xp: schwebende XP */
 const dashFrom = () => { const el = dashItem('month')(); const r = el.getBoundingClientRect(); return { x: r.left + 60, y: r.top + 34 }; };
+const go = (t1, to, o = {}) => ({ t0: t1 - (o.lead ?? 0.55), t1, to, click: true, hold: 0.25, ...o });
 const CURSOR = [
-  { t0: E.checkClick - 1.1, t1: E.checkClick, to: CHECK, from: [-240, 150], click: true, xp: 10, hold: 0.9 },
-  { t0: E.taskClick - 1.1, t1: E.taskClick, to: taskCheck('Pflanzen gießen'), from: [-200, 140], click: true, xp: 8, hold: 0.9 },
-  { t0: E.matrixClick - 1.3, t1: E.matrixClick, to: () => ovCell, from: [-160, 170], click: true, xp: 10, hold: 0.9 },
+  // Heute
+  go(E.checkA, CHECK, { lead: 1.1, from: [-240, 150], xp: 10 }),
+  go(E.checkB, CHECK, { xp: 10 }),
+  go(E.checkC, CHECK, { xp: 10 }),
+  go(E.amtA, AMT),
+  go(E.amtB, AMT, { lead: 0.3, xp: 5 }),
+  go(E.moodClick, '[data-action="mood"][data-mood="5"]', { lead: 0.8, hold: 0.9 }),
+  // Aufgaben
+  go(E.taskFocus, '.task-input', { lead: 1.0, from: [-200, 150], hold: 3.2 }),
+  go(E.taskClick, taskCheck('Pflanzen gießen'), { lead: 0.8, xp: 8, hold: 0.9 }),
+  // Kalender
   { t0: E.dragStart - 1.1, t1: E.dragStart, to: meeting, from: [-200, 170], hold: 0 },
-  { t0: E.dragStart, t1: E.dragEnd, drag: () => { const c = qa('.wk-col'); return [c.length > 1 ? centerOf(c[1]).x - centerOf(c[0]).x : 180, 72]; }, dragEl: (x, y) => appDoc.elementFromPoint(x, y)?.closest('.wk-ev') || meeting(), hold: 0.8 },
-  { t0: E.lockClick - 1.0, t1: E.lockClick, to: '#nav-schedule', from: [200, 150], click: true, delay: 0.4, lock: true, hold: 0.3 },
-  { t0: E.activateClick - 1.0, t1: E.activateClick, to: '[data-action="work-enable"]', from: [140, 160], burst: true, hold: 0.8 },
-  { t0: E.clockClick - 1.0, t1: E.clockClick, to: '.clock-main', from: [-190, 170], click: true, hold: 0.8 },
-  { t0: E.levelClick - 1.0, t1: E.levelClick, to: '#level-card', from: [-170, 150], click: true, delay: 0.3, hold: 0.3 },
-  { t0: E.finLockClick - 1.0, t1: E.finLockClick, to: '#nav-finance', from: [200, 150], click: true, delay: 0.4, lock: true, hold: 0.3 },
-  { t0: E.fileDrop - 1.5, t1: E.fileDrop, to: '[data-action="fin-unlock-import"]', from: [460, 260], carry: true, burst: true, hold: 0.8 },
+  { t0: E.dragStart, t1: E.dragEnd, drag: () => { const c = qa('.wk-col'); return [c.length > 1 ? centerOf(c[1]).x - centerOf(c[0]).x : 180, 72]; }, dragEl: (x, y) => appDoc.elementFromPoint(x, y)?.closest('.wk-ev') || meeting(), hold: 0.2 },
+  go(E.calNew, () => q('.btn[data-action="cal-new"]') || q('[data-action="cal-new"]'), { lead: 0.9 }),
+  go(E.calSave, '[data-action="cal-save"]', { lead: 0.9, from: [-160, 120], hold: 0.6 }),
+  // Fitness
+  go(E.fitLock, '#nav-training', { lead: 1.0, from: [200, 150], delay: 0.4, lock: true }),
+  { t0: E.fitActivate - 1.0, t1: E.fitActivate, to: '[data-action="fit-enable"]', from: [140, 160], burst: true, hold: 0.8 },
+  go(E.dayClick, () => q('.fit-pw-day.today'), { lead: 0.9, from: [-180, 160] }),
+  go(E.planToggle, () => q('.modal .fit-day-plan:not(.on) [data-action="fit-pw-toggle"]'), { lead: 0.8, from: [-140, 120], xp: 5 }),
+  go(E.fitStart, '.modal [data-action="fit-start"]', { lead: 0.8 }),
+  go(E.set1, openSet, { lead: 0.8, from: [-160, 140], xp: 5 }),
+  go(E.set2, openSet, { lead: 0.45, xp: 5 }),
+  go(E.set3, openSet, { lead: 0.45, xp: 5 }),
+  go(E.set4, openSet, { lead: 0.45, xp: 5, hold: 0.6 }),
+  go(E.water1, glass, { lead: 0.8, from: [-160, 140] }),
+  go(E.water2, glass, { lead: 0.35, hold: 0.8 }),
+  // Challenges und Vitrine
+  go(E.swapClick, '.ch-swap', { lead: 1.0, from: [-180, 150], hold: 0.5 }),
+  go(E.levelClick, '#level-card', { lead: 0.8, from: [-170, 150], delay: 0.25 }),
+  go(E.vitrineClick, '.modal [data-action="showcase-open"]', { lead: 0.8, from: [-160, 140] }),
+  go(E.title1, title(1), { lead: 0.8, from: [-160, 140], xp: 0 }),
+  go(E.title2, title(2), { lead: 0.6 }),
+  go(E.color1, swatch(1), { lead: 0.6 }),
+  go(E.color2, swatch(3), { lead: 0.6, hold: 0.8 }),
+  // Pause
+  go(E.pauseOpen, '[data-action="pause-open"]', { lead: 1.0, from: [180, 150] }),
+  go(E.pauseKind, '.modal [data-action="pause-kind"][data-kind="sick"]', { lead: 0.8, from: [-160, 140] }),
+  { t0: E.pauseStart - 0.8, t1: E.pauseStart, to: '.modal [data-action="pause-start"]', click: true, burst: true, hold: 0.6 },
+  // Startseite anpassen
   { t0: E.dashDragStart - 1.1, t1: E.dashDragStart, to: dashFrom, from: [180, 160], hold: 0 },
-  { t0: E.dashDragStart, t1: E.dashDragEnd, drag: () => { const a = dashFrom(), b = centerOf(dashItem('week')()); return [b.x - 40 - a.x, b.y - 30 - a.y]; }, dragEl: (x, y) => appDoc.elementFromPoint(x, y)?.closest('.dash-item') || dashItem('month')(), dash: true, hold: 0.9 },
+  { t0: E.dashDragStart, t1: E.dashDragEnd, drag: () => { const a = dashFrom(), c = centerOf(dashItem('week')()); return [c.x - 40 - a.x, c.y - 30 - a.y]; }, dragEl: (x, y) => appDoc.elementFromPoint(x, y)?.closest('.dash-item') || dashItem('month')(), dash: true, hold: 0.9 },
 ];
 
 /* ================= Kamera ================= */
 
 const cache = new Map();
 function keyParams(k, t, atCut) {
-  let p = k.f === 'cursor' ? resolve('cursor') : cache.get(k);
+  let p = k.f === 'cursor' ? resolve('cursor') : k.live ? resolve(k.f) : cache.get(k);
   if (!p) {
-    p = resolve(k.f, atCut && k.bring);
+    p = resolve(k.f, k.bring);
     if (!p) return null;
-    cache.set(k, p);
+    if (!k.live) cache.set(k, p);
   }
   return { tx: k.sx - W / 2 - k.s * (p.x - FW / 2), ty: k.sy - H / 2 - k.s * (p.y - FH / 2), s: k.s, rx: k.rx, ry: k.ry, rz: k.rz, o: k.o, blur: k.blur };
 }
@@ -396,7 +480,8 @@ function updateCursor(t) {
       st.done = true;
       cur.x = st.to.x; cur.y = st.to.y;
       if (seg.drag) { if (st.el) pointer('pointermove', appDoc, cur.x, cur.y); pointer('pointerup', appDoc, cur.x, cur.y); }
-      if (seg.click && st.el) { if (seg.delay) pending.push({ t: seg.t1 + seg.delay, el: st.el }); else st.el.click(); }
+      const hitEl = st.el?.isConnected ? st.el : appDoc.elementFromPoint(cur.x, cur.y);
+      if (seg.click && hitEl) { if (seg.delay) pending.push({ t: seg.t1 + seg.delay, el: hitEl, x: cur.x, y: cur.y }); else hitEl.click(); }
       fxEvents.push({ kind: 'ripple', t: seg.t1, x: cur.x, y: cur.y });
       if (seg.xp) { fxEvents.push({ kind: 'xp', t: seg.t1, x: cur.x, y: cur.y - 30, n: seg.xp }); fxEvents.push({ kind: 'sparks', t: seg.t1, x: cur.x, y: cur.y }); }
       if (seg.lock && st.el) { const r = st.el.getBoundingClientRect(); fxEvents.push({ kind: 'lock', t: seg.t1, x: r.left, y: r.top, w: r.width, h: r.height }); }
@@ -412,6 +497,7 @@ function updateCursor(t) {
 // Die Datei „Kontoauszug.csv“, die auf den Knopf gezogen wird
 function fileHtml(t) {
   const seg = CURSOR.find((s) => s.carry);
+  if (!seg) return '';
   if (t < seg.t0 - 0.12 || t > seg.t1 + 0.3) return '';
   const drop = prog(t, seg.t1, seg.t1 + 0.25);
   const k = 1 - easeOut(drop);
@@ -449,6 +535,11 @@ function renderFx(t, camS) {
         const r = (20 + k * max) / camS;
         html += `<div class="burst" style="left:${e.x - r}px;top:${e.y - r}px;width:${r * 2}px;height:${r * 2}px;opacity:${1 - k};border-width:${4 / camS}px"></div>`;
       }
+    }
+    if (e.kind === 'enter' && a < 0.9) {
+      const k = a / 0.9;
+      const sc = (k < 0.15 ? 0.85 + easeOutBack(k / 0.15) * 0.15 : 1 - (k > 0.25 && k < 0.35 ? 0.08 : 0)) * 1.3 / camS;
+      html += `<div class="keycap" style="left:${e.x}px;top:${e.y}px;opacity:${k > 0.7 ? 1 - (k - 0.7) / 0.3 : 1};transform:translate(-50%,-50%) scale(${sc})">Enter ⏎</div>`;
     }
     if (e.kind === 'lock' && a < 0.7) {
       const k = a / 0.7;
@@ -582,7 +673,7 @@ function renderCaptions(t, camS) {
 function renderStamp(t) {
   const el = $('stamp');
   let on = false;
-  for (const [t0, t1] of [[E.activateClick, E.workCut - 0.1], [E.fileDrop, E.finCut - 0.1]]) {
+  for (const [t0, t1] of [[E.fitActivate, E.fitCut - 0.1]]) {
     if (t < t0 || t > t1 + 0.3) continue;
     const k = easeOutBack(prog(t, t0, t0 + 0.4));
     const out = prog(t, t1, t1 + 0.3);
@@ -596,7 +687,7 @@ function renderStamp(t) {
 // Level-Fenster: Rangliste nacheinander einblenden und langsam bis nach unten scrollen
 function renderLevelPanel(t) {
   const t0 = E.levelPanel;
-  if (t < t0 - 0.05 || t > bar(32)) return;
+  if (t0 === undefined || t < t0 - 0.05 || t > bar(32)) return;
   const hero = q('.modal .lv-hero');
   if (hero) hero.style.transform = `scale(${0.92 + 0.08 * easeOutBack(prog(t, t0, t0 + 0.6))})`;
   qa('.modal .rank-row').forEach((r, i) => {
@@ -610,7 +701,7 @@ function renderLevelPanel(t) {
 
 // Jahresansicht: Monate ploppen nacheinander auf
 function renderYear(t) {
-  const t0 = bar(22);
+  const t0 = bar(35);
   if (t < t0 || t > t0 + 2.5) return;
   qa('.ym').forEach((m, i) => {
     const k = prog(t, t0 + 0.15 + i * 0.07, t0 + 0.65 + i * 0.07);
@@ -680,7 +771,7 @@ const confetti = (() => {
 function renderConfetti(t) {
   const c = $('confetti').getContext('2d');
   c.clearRect(0, 0, W, H);
-  for (const t0 of [E.activateClick, E.fileDrop, E.levelPanel]) {
+  for (const t0 of [E.fitActivate, E.vitrineClick, E.pauseStart]) {
     const a = t - t0;
     if (a < 0 || a > 2.6) continue;
     for (const p of confetti) {
@@ -700,7 +791,9 @@ let actIdx = 0;
 async function renderAt(t) {
   while (actIdx < ACTS.length && t >= ACTS[actIdx].t) { ACTS[actIdx].fn(t); actIdx++; }
   applyBuild(t);
-  while (pending.length && t >= pending[0].t) pending.shift().el.click();
+  applyTyping(t);
+  applyScroll(t);
+  while (pending.length && t >= pending[0].t) { const p = pending.shift(); (p.el.isConnected ? p.el : appDoc.elementFromPoint(p.x, p.y))?.click(); }
   const curVis = updateCursor(t);
   renderLevelPanel(t);
   renderYear(t);
@@ -731,7 +824,7 @@ async function renderAt(t) {
   c.style.transform = `translate(${cur.x}px, ${cur.y}px) scale(${(cur.scale * 1.35) / cam.s})`;
   renderFx(t, cam.s);
 
-  const hit = [E.activateClick, E.fileDrop, E.levelPanel].reduce((m, h) => Math.max(m, t >= h ? 0.22 * Math.exp(-(t - h) * 8) : 0), 0);
+  const hit = [E.fitActivate, E.pauseStart].reduce((m, h) => Math.max(m, t >= h ? 0.22 * Math.exp(-(t - h) * 8) : 0), 0);
   $('flash').style.opacity = hit;
 
   drawBackground(t);
